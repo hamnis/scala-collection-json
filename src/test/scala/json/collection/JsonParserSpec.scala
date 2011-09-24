@@ -8,14 +8,14 @@ class JsonParserSpec extends Specification {
   val parser = new JsonParser()
   val href = URI.create("http://example.org/friends/")
   "parsing json " should {
-    "minimal is successful" in {
+    "minimal" in {
       val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/minimal.json")))
       result match {
         case Left(ex) => throw ex
         case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, None))
       }
     }
-    "minimal without version is successful" in {
+    "minimal without version" in {
       val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/minimal-without-version.json")))
       result match {
         case Left(ex) => throw ex
@@ -23,7 +23,7 @@ class JsonParserSpec extends Specification {
       }
     }
 
-    "one item is successful" in {
+    "one item" in {
       val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/item.json")))
       val item = Item(
         URI.create("http://example.org/friends/jdoe"),
@@ -44,6 +44,21 @@ class JsonParserSpec extends Specification {
       result match {
         case Left(ex) => throw ex
         case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, links, List(item), Nil, None, None))
+      }
+
+    }
+
+    "template" in {
+      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/template.json")))
+      val template = Some(Template(List(
+          PropertyWithValue("full-name", Some("Full Name"), Value("")),
+          PropertyWithValue("email", Some("Email"), Value("")),
+          PropertyWithValue("blog", Some("Blog"), Value("")),
+          PropertyWithValue("avatar", Some("Avatar"), Value(""))
+        )))
+      result match {
+        case Left(ex) => throw ex
+        case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, Nil, template, None))
       }
 
     }
