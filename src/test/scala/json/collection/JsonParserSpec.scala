@@ -28,7 +28,7 @@ class JsonParserSpec extends Specification {
       val item = Item(
         URI.create("http://example.org/friends/jdoe"),
         List(
-          PropertyWithValue("full-name", Some("J. Doe"), Value("Full Name")),
+          PropertyWithValue("full-name", Some("Full Name"), Value("J. Doe")),
           PropertyWithValue("email", Some("Email"), Value("jdoe@example.org"))
         ),
         List(

@@ -45,18 +45,23 @@ class JsonParser {
       var template: Option[Template] = None
       var error: Option[ErrorMessage] = None
       var links = List[Link]()
-      val field = extractField(target).trim()
-      
-      field match {
-        case "version" => version = Some(Version(extractString(target)))
-        case "href" => href = Some(URI.create(extractString(target)))
-        case "items" => items = readObjectList(target, parseItem)
-        case "queries" => queries = readObjectList(target, parseQuery)
-        case "links" => links = readObjectList(target, parseLink)
-        case "template" => template = readObject(target, parseTemplate)
-        case "error" => error = readObject(target, parseError)
-        case _ =>
+      while (target.peek() != CLOSE_OBJECT) {
+        if (target.peek() == VALUE_SEPARATOR) {
+          target.read()
+        }
+        val field = extractField(target).trim()
+
+        field match {
+          case "version" => version = Some(Version(extractString(target)))
+          case "href" => href = Some(URI.create(extractString(target)))
+          case "items" => items = readObjectList(target, parseItem)
+          case "queries" => queries = readObjectList(target, parseQuery)
+          case "links" => links = readObjectList(target, parseLink)
+          case "template" => template = readObject(target, parseTemplate)
+          case "error" => error = readObject(target, parseError)
+        }
       }
+
       JsonCollection(version.getOrElse(Version.ONE), href.getOrElse(fail("Collection")), links, items, queries, template, error)
     }
   }
@@ -67,13 +72,16 @@ class JsonParser {
       var properties = List[Property]()
       var links = List[Link]()
       var href: Option[URI] = None
-
-      val field = extractField(target)
-      field match {
-        case "href" => href = Some(URI.create(extractString(target)))
-        case "data" => properties = parseData(target)
-        case "links" => links = readObjectList(target, parseLink)
-        case _ =>
+      while (target.peek() != CLOSE_OBJECT) {
+        if (target.peek() == VALUE_SEPARATOR) {
+          target.read()
+        }
+        val field = extractField(target)
+        field match {
+          case "href" => href = Some(URI.create(extractString(target)))
+          case "data" => properties = parseData(target)
+          case "links" => links = readObjectList(target, parseLink)
+        }
       }
       Item(href.getOrElse(fail("Item")), properties, links)
     }
@@ -89,14 +97,17 @@ class JsonParser {
       var href: Option[URI] = None
       var prompt: Option[String] = None
       var rel: Option[String] = None
-
-      val field = extractField(target)
-      field match {
-        case "href" => href = Some(URI.create(extractString(target)))
-        case "data" => properties = parseData(target)
-        case "rel" => rel = Some(extractString(target))
-        case "prompt" => prompt = Some(extractString(target))
-        case _ =>
+      while (target.peek() != CLOSE_OBJECT) {
+        if (target.peek() == VALUE_SEPARATOR) {
+          target.read()
+        }
+        val field = extractField(target)
+        field match {
+          case "href" => href = Some(URI.create(extractString(target)))
+          case "data" => properties = parseData(target)
+          case "rel" => rel = Some(extractString(target))
+          case "prompt" => prompt = Some(extractString(target))
+        }
       }
       Query(href.getOrElse(fail("Query")), rel.getOrElse(fail("Query")), prompt, properties)
     }
@@ -110,15 +121,20 @@ class JsonParser {
       var href: Option[URI] = None
       var render: Option[Render] = None
 
-      val field = extractField(target)
-      field match {
-        case "href" => href = Some(URI.create(extractString(target)))
-        case "rel" => rel = Some(extractString(target))
-        case "prompt" => prompt = Some(extractString(target))
-        case "render" => render = Render(extractString(target))
-        case _ =>
+      while (target.peek() != CLOSE_OBJECT) {
+        if (target.peek() == VALUE_SEPARATOR) {
+          target.read()
+        }
+        val field = extractField(target)
+        field match {
+          case "href" => href = Some(URI.create(extractString(target)))
+          case "rel" => rel = Some(extractString(target))
+          case "prompt" => prompt = Some(extractString(target))
+          case "render" => render = Render(extractString(target))
+        }
       }
-      Link(href.getOrElse(fail("Link")), rel.getOrElse(fail("Link")), prompt, render.getOrElse(fail("Link")))
+
+      Link(href.getOrElse(fail("Link")), rel.getOrElse(fail("Link")), prompt, render.getOrElse(Render.LINK))
     }
   }
 
@@ -144,12 +160,17 @@ class JsonParser {
       var name: Option[String] = None
       var value: Option[Value[_]] = None
       var prompt: Option[String] = None
-      val field = extractField(target)
-      field match {
-        case "name" => name = Some(extractString(target))
-        case "prompt" => prompt = Some(extractString(target))
-        case "value" => value = Some(parseValue(target))
-        case _ =>
+      while (target.peek() != CLOSE_OBJECT) {
+        if (target.peek() == VALUE_SEPARATOR) {
+          target.read()
+        }
+
+        val field = extractField(target)
+        field match {
+          case "name" => name = Some(extractString(target))
+          case "prompt" => prompt = Some(extractString(target))
+          case "value" => value = Some(parseValue(target))
+        }
       }
       val actualName = name.getOrElse(throw new IllegalStateException("Name missing from property"))
       value.map(PropertyWithValue(actualName, prompt, _)).getOrElse(PropertyWithoutValue(actualName, prompt))
@@ -162,7 +183,7 @@ class JsonParser {
     }
     else {
       var obj: Option[A] = None
-      while (target.read() != CLOSE_OBJECT) {
+      while (target.read() == OPEN_OBJECT) {
         obj = Some(f(target))
       }
       obj

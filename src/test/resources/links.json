@@ -1,0 +1,19 @@
+{ "collection": {
+  "version" : "1.0",
+  "href" : "http://example.org/friends/",
+  "links" : [
+    {
+      "rel" : "feed",
+      "href" : "http://example.org/friends/rss"
+    },
+    {
+      "rel" : "queries",
+      "href" : "http://example.org/friends/?queries"
+    },
+    {
+      "rel" : "template",
+      "href" : "http://example.org/friends/?template"
+    }
+  ]
+}
+}
