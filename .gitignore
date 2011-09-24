@@ -7,6 +7,8 @@
 .project
 .settings
 .svn
+.idea
+project/boot
 catalog.xml
 nbactions.xml
 nbproject
