@@ -3,31 +3,36 @@ package json.collection
 import java.net.URI
 
 case class JsonCollection(version: Version = Version.ONE,
+                          href: URI,
                           links: Seq[Link],
                           items: Seq[Item],
-                          error: Option[ErrorMessage],
+                          queries: Seq[Query],
                           template: Option[Template],
-                          queries: Seq[Query])
+                          error: Option[ErrorMessage]
+                          )
 
 object JsonCollection {
 
-  def apply(error: ErrorMessage):JsonCollection =
-    JsonCollection(Version.ONE, List(), List(), Some(error), None, List())
+  def apply(href: URI, error: ErrorMessage):JsonCollection =
+    JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, Some(error))
 
-  def apply(links: Seq[Link],
+  def apply(href: URI,
+            links: Seq[Link],
             items: Seq[Item],
             template: Option[Template],
             queries: Seq[Query]):JsonCollection =
-    JsonCollection(Version.ONE, links, items, None, template, queries)
+    JsonCollection(Version.ONE, href, links, items, queries, template, None)
 
-  def apply(links: Seq[Link],
+  def apply(href: URI,
+            links: Seq[Link],
             items: Seq[Item],
             queries: Seq[Query]):JsonCollection =
-    JsonCollection(Version.ONE, links, items, None, None, queries)
+    JsonCollection(Version.ONE, href, links, items, queries, None, None)
 
-  def apply(links: Seq[Link],
+  def apply(href: URI,
+            links: Seq[Link],
             items: Seq[Item]):JsonCollection =
-    JsonCollection(Version.ONE, links, items, None, None, List())
+    JsonCollection(Version.ONE, href, links, items, Nil, None, None)
 
 }
 
@@ -52,6 +57,19 @@ case class PropertyWithoutValue(name: String, prompt: Option[String]) extends Pr
 
 case class ErrorMessage(title: String, code: Option[String], message: Option[String])
 
+sealed abstract class Render(name: String)
+
+object Render {
+  case object IMAGE extends Render("image")
+  case object LINK extends Render("link")
+
+  def apply(value: String): Option[Render] = value match {
+    case "image" => Some(IMAGE)
+    case "link" => Some(LINK)
+    case _ => None
+  }
+}
+
 sealed trait Value[A] {
   def value: A
 }
@@ -75,10 +93,10 @@ case object NullValue extends Value[Null] {
   def value = null
 }
 
-case class Link(href: URI, rel: String, prompt: Option[String])
+case class Link(href: URI, rel: String, prompt: Option[String] = None, render: Render = Render.LINK)
 case class Item(href: URI, properties: Seq[Property], links: Seq[Link])
-case class Query(href: URI, properties: Seq[Property], links: Seq[Link])
-case class Template(href: URI, rel: String, prompt: Option[String], properties: Seq[Property])
+case class Query(href: URI, rel: String, prompt: Option[String], properties: Seq[Property])
+case class Template(properties: Seq[Property])
 
 object Conversions {
   implicit def stringToValue(value: String)   = Some(Value(value))

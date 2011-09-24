@@ -2,76 +2,207 @@ package json.collection
 
 import java.io.Reader
 import jsonij.json.Constants._
-import jsonij.json.{JSONReader, JSONParserException, JSONParser, ReaderJSONReader}
+import collection.mutable.ListBuffer
+import java.net.URI
+import jsonij.json._
+import java.lang.IllegalStateException
 
 class JsonParser {
   private val parser = new JSONParser
+
   def parse(reader: Reader): Either[Exception, JsonCollection] = {
-    val r = new ReaderJSONReader(reader)
-    val peek = r.peek()
-    if (peek == -1) {
+    val target = new ReaderJSONReader(reader)
+    val read = target.read()
+    if (read == -1) {
       Left(new JSONParserException("invalidEmpty"))
     }
-    else if (peek != OPEN_OBJECT) {
-      Left(new JSONParserException("invalidObjectExpecting1", r.getLineNumber, r.getPositionNumber, Array(OPEN_OBJECT.asInstanceOf[Char], peek.asInstanceOf[Char])))
+    else if (read != OPEN_OBJECT) {
+      Left(new JSONParserException("invalidObjectExpecting1", target.getLineNumber, target.getPositionNumber, Array(OPEN_OBJECT.asInstanceOf[Char], read.asInstanceOf[Char])))
     }
     try {
-      r.read()
-      val field = parser.parseString(r).toString
+      val field = extractField(target)
       if (!"collection".equals(field)) {
         Left(new IllegalArgumentException("Wrong field; expected 'collection' got '%s'".format(field)))
       }
       else {
-        r.read()
-        Right(parseCollection(r))
+        readObject(target, parseCollection) match {
+          case Some(x) => Right(x)
+          case None => Left(new IllegalArgumentException("Failed to parse collection"))
+        }
       }
-
     }
     catch {
       case e: Exception => Left(e)
     }
   }
 
-  private def parseCollection(target: JSONReader) = {
-    var version: Option[Version] = None
-    var items = List[Item]()
-    var queries = List[Query]()
-    var template: Option[Template] = None
-    var error: Option[ErrorMessage] = None
-    var links = List[Link]()
-    while (target.read() == CLOSE_OBJECT) {
-      val field = parser.parseString(target).toString
-      if (target.read() != NAME_SEPARATOR) {
-        throw new IllegalArgumentException("Expected a property separator")
-      }
+  private val parseCollection: (JSONReader) => JsonCollection = {
+    target => {
+      var version: Option[Version] = None
+      var href: Option[URI] = None
+      var items = List[Item]()
+      var queries = List[Query]()
+      var template: Option[Template] = None
+      var error: Option[ErrorMessage] = None
+      var links = List[Link]()
+      val field = extractField(target).trim()
+      
       field match {
-        case "version" => version = Some(Version(parser.parseString(target).toString))
-        case "items" => items = parseItems(target)
-        case "queries" => queries = parseQueries(target)
-        case "links" => links = parseLinks(target)
-        case "template" => template = parseTemplate(target)
-        case "error" => error = parseError(target)
+        case "version" => version = Some(Version(extractString(target)))
+        case "href" => href = Some(URI.create(extractString(target)))
+        case "items" => items = readObjectList(target, parseItem)
+        case "queries" => queries = readObjectList(target, parseQuery)
+        case "links" => links = readObjectList(target, parseLink)
+        case "template" => template = readObject(target, parseTemplate)
+        case "error" => error = readObject(target, parseError)
+        case _ =>
+      }
+      JsonCollection(version.getOrElse(Version.ONE), href.getOrElse(fail("Collection")), links, items, queries, template, error)
+    }
+  }
+
+
+  private val parseItem: (JSONReader) => Item = {
+    target => {
+      var properties = List[Property]()
+      var links = List[Link]()
+      var href: Option[URI] = None
+
+      val field = extractField(target)
+      field match {
+        case "href" => href = Some(URI.create(extractString(target)))
+        case "data" => properties = parseData(target)
+        case "links" => links = readObjectList(target, parseLink)
+        case _ =>
+      }
+      Item(href.getOrElse(fail("Item")), properties, links)
+    }
+  }
+
+  def fail(value: String): Nothing = {
+    throw new IllegalStateException("Failed to parse %s, missing href".format(value))
+  }
+
+  private val parseQuery: (JSONReader) => Query = {
+    target => {
+      var properties = List[Property]()
+      var href: Option[URI] = None
+      var prompt: Option[String] = None
+      var rel: Option[String] = None
+
+      val field = extractField(target)
+      field match {
+        case "href" => href = Some(URI.create(extractString(target)))
+        case "data" => properties = parseData(target)
+        case "rel" => rel = Some(extractString(target))
+        case "prompt" => prompt = Some(extractString(target))
+        case _ =>
+      }
+      Query(href.getOrElse(fail("Query")), rel.getOrElse(fail("Query")), prompt, properties)
+    }
+  }
+
+
+  private val parseLink: (JSONReader) => Link = {
+    target => {
+      var prompt: Option[String] = None
+      var rel: Option[String] = None
+      var href: Option[URI] = None
+      var render: Option[Render] = None
+
+      val field = extractField(target)
+      field match {
+        case "href" => href = Some(URI.create(extractString(target)))
+        case "rel" => rel = Some(extractString(target))
+        case "prompt" => prompt = Some(extractString(target))
+        case "render" => render = Render(extractString(target))
+        case _ =>
+      }
+      Link(href.getOrElse(fail("Link")), rel.getOrElse(fail("Link")), prompt, render.getOrElse(fail("Link")))
+    }
+  }
+
+  private val parseTemplate: (JSONReader) => Template = {
+    target => {
+      if ("data" == extractField(target)) {
+        Template(parseData(target))
+      }
+      else {
+        throw new IllegalArgumentException("Illegal property found")
       }
     }
-    JsonCollection(version.getOrElse(Version.ONE), links, items, error, template, queries)
-  }
-  private def parseItems(target: JSONReader): List[Item] = {
-    List()
   }
 
-  private def parseQueries(target: JSONReader): List[Query] = {
-    List()
+  private val parseError: (JSONReader) => ErrorMessage = {
+    target => null
   }
 
-  private def parseLinks(target: JSONReader): List[Link] = {
-    List()
+  private def parseData(target: JSONReader): List[Property] = readObjectList(target, parseProperty)
+
+  private val parseProperty: (JSONReader) => Property = {
+    target => {
+      var name: Option[String] = None
+      var value: Option[Value[_]] = None
+      var prompt: Option[String] = None
+      val field = extractField(target)
+      field match {
+        case "name" => name = Some(extractString(target))
+        case "prompt" => prompt = Some(extractString(target))
+        case "value" => value = Some(parseValue(target))
+        case _ =>
+      }
+      val actualName = name.getOrElse(throw new IllegalStateException("Name missing from property"))
+      value.map(PropertyWithValue(actualName, prompt, _)).getOrElse(PropertyWithoutValue(actualName, prompt))
+    }
   }
 
-  private def parseTemplate(target: JSONReader): Option[Template] = {
-    None
+  private def readObject[A](target: JSONReader, f: (JSONReader) => A): Option[A] = {
+    if (target.peek() != OPEN_OBJECT) {
+      None
+    }
+    else {
+      var obj: Option[A] = None
+      while (target.read() != CLOSE_OBJECT) {
+        obj = Some(f(target))
+      }
+      obj
+    }
   }
 
-  private def parseError(target: JSONReader): Option[ErrorMessage] = {
-    None
+  private def readObjectList[A](target: JSONReader, f: (JSONReader) => A): List[A] = {
+    if (target.peek() != OPEN_ARRAY) {
+      Nil
+    }
+    else {
+      val buffer = ListBuffer[A]()
+      while (target.read() != CLOSE_ARRAY) {
+        readObject(target, f) foreach (buffer += _)
+      }
+      buffer.toList
+    }
+  }
+
+
+  private def extractField(target: JSONReader): String = {
+    val field = extractString(target)
+    if (target.read() != NAME_SEPARATOR) {
+      throw new IllegalArgumentException("Expected a property separator")
+    }
+    field
+  }
+
+  private final def parseValue(target: JSONReader) = {
+    val value = target.peek match {
+      case QUOTATION => extractString(target)
+      case x if ConstantUtility.isNumeric(x) => parser.parseNumeric(target).getNumber
+      case x if TRUE_STR.charAt(0) == x => true
+      case x if FALSE_STR.charAt(0) == x => false
+      case x if NULL_STR.charAt(0) == x => null
+    }
+    Value(value)
+  }
+
+  private def extractString(target: JSONReader): String = {
+    parser.parseString(target).toString
   }
 }
