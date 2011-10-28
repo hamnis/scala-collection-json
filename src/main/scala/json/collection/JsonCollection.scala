@@ -13,6 +13,8 @@ case class JsonCollection(version: Version = Version.ONE,
 
 object JsonCollection {
 
+  def apply(href: URI): JsonCollection = JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, None)
+
   def apply(href: URI, error: ErrorMessage):JsonCollection =
     JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, Some(error))
 
