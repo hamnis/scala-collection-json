@@ -112,6 +112,8 @@ case class Item(href: URI, properties: Seq[Property], links: Seq[Link])
 case class Query(href: URI, rel: String, prompt: Option[String], properties: Seq[Property])
 case class Template(properties: Seq[Property])
 
+case class Extensions(map: Map[String, Any])
+
 object Conversions {
   implicit def stringToValue(value: String)   = Some(Value(value))
   implicit def numericToValue(value: Numeric[_]) = Some(Value(value))

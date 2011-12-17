@@ -39,7 +39,7 @@ class LiftJsonParser {
     fields.foldLeft(Map[String, JValue]())((coll, b) => coll + (b.name -> b.value))
   }
 
-  private val toLink: PartialFunction[JValue, Link] = {
+  private val toLink: PartialFunction[JValue, List[Link]] = {
     case JObject(fields) => {
       val map = fieldAsMap(fields)
       val toRender: PartialFunction[JValue, Render] = {
@@ -51,11 +51,11 @@ class LiftJsonParser {
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
         render <- map.get("render").map(toRender).orElse(Some(Render.LINK))
       } yield Link(href, rel, prompt, render)
-    }.get
+    }.toList
   }
 
 
-  private val toItem: PartialFunction[JValue, Item] = {
+  private val toItem: PartialFunction[JValue, List[Item]] = {
     case JObject(fields) => {
       val map = fieldAsMap(fields)
       for {
@@ -63,10 +63,10 @@ class LiftJsonParser {
         AsList(data) <- map.get("data").orElse(EMPTY_ARRAY)
         AsList(links) <- map.get("links").orElse(EMPTY_ARRAY)
       } yield Item(href, toData(data), toLinks(links))
-    }.get
+    }.toList
   }
 
-  private val toQuery: PartialFunction[JValue, Query] = {
+  private val toQuery: PartialFunction[JValue, List[Query]] = {
     case JObject(fields) => {
       val map = fieldAsMap(fields)
       for {
@@ -76,10 +76,10 @@ class LiftJsonParser {
         AsList(data) <- map.get("data").orElse(EMPTY_ARRAY)
         AsList(links) <- map.get("links").orElse(EMPTY_ARRAY)
       } yield Query(href, rel, prompt, toData(data))
-    }.get
+    }.toList
   }
 
-  private val toProperty: PartialFunction[JValue, Property] = {
+  private val toProperty: PartialFunction[JValue, List[Property]] = {
     case JObject(fields) => {
       val map = fieldAsMap(fields)
       val property = for {
@@ -87,14 +87,14 @@ class LiftJsonParser {
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
         AsOptionValue(value) <- map.get("value").orElse(EMPTY_VALUE)
       } yield Property(name, prompt, value)
-      property.get
+      property.toList
     }
   }
 
-  private def toLinks(list: List[JValue]) : List[Link] = list.map(toLink)
-  private def toItems(list: List[JValue]) : List[Item] = list.map(toItem)
-  private def toData(list: List[JValue]): List[Property] = list.map(toProperty)
-  private def toQueries(list: List[JValue]): List[Query] = list.map(toQuery)
+  private def toLinks(list: List[JValue]) : List[Link] = list.flatMap(toLink)
+  private def toItems(list: List[JValue]) : List[Item] = list.flatMap(toItem)
+  private def toData(list: List[JValue]): List[Property] = list.flatMap(toProperty)
+  private def toQueries(list: List[JValue]): List[Query] = list.flatMap(toQuery)
   private def toTemplate(obj: Option[JValue]): Option[Template] = obj.flatMap(toTemplate)
   private def toError(obj: Option[JValue]): Option[ErrorMessage] = obj.flatMap(toError)
 
