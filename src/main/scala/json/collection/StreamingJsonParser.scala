@@ -138,8 +138,8 @@ class StreamingJsonParser {
       var message: Option[String] = None
       populateFields(target) {
         case "title" => title = Some(extractString(target))
-        case "code" => message = Some(extractString(target))
-        case "message" => code = Some(extractString(target))
+        case "code" => code = Some(extractString(target))
+        case "message" => message = Some(extractString(target))
       }
       ErrorMessage(title.getOrElse(fail("ErrorMessage")), code, message)
     }
