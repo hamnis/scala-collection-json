@@ -16,7 +16,7 @@ import net.liftweb.json.{JsonAST, JsonParser}
 
 class LiftJsonParser {
   private val EMPTY_ARRAY = Some(JArray(Nil))
-  private val EMPTY_VALUE = Some(JString("NO_VALUE_IS_HERE"))
+  private val EMPTY_VALUE = Some(JNothing)
 
   def parse(reader: Reader): Either[Exception, JsonCollection] = {
     try {
@@ -50,7 +50,7 @@ class LiftJsonParser {
         AsString(rel) <- map.get("rel")
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
         render <- map.get("render").map(toRender).orElse(Some(Render.LINK))
-      } yield Link(href, rel, prompt.value, render)
+      } yield Link(href, rel, prompt, render)
     }.get
   }
 
@@ -75,7 +75,7 @@ class LiftJsonParser {
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
         AsList(data) <- map.get("data").orElse(EMPTY_ARRAY)
         AsList(links) <- map.get("links").orElse(EMPTY_ARRAY)
-      } yield Query(href, rel, prompt.value, toData(data))
+      } yield Query(href, rel, prompt, toData(data))
     }.get
   }
 
@@ -86,7 +86,7 @@ class LiftJsonParser {
         AsString(name) <- map.get("name")
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
         AsOptionValue(value) <- map.get("value").orElse(EMPTY_VALUE)
-      } yield Property(name, prompt.value, value)
+      } yield Property(name, prompt, value)
       property.get
     }
   }
@@ -114,7 +114,7 @@ class LiftJsonParser {
         AsString(title) <- map.get("title")
         AsOptionalString(code) <- map.get("code").orElse(EMPTY_VALUE)
         AsOptionalString(message) <- map.get("message").orElse(EMPTY_VALUE)
-      } yield ErrorMessage(title, code.value, message.value)
+      } yield ErrorMessage(title, code, message)
     }
   }
 
@@ -141,19 +141,18 @@ class LiftJsonParser {
     def unapply(str: JString) = Some(str.values)
   }
 
-  private case class OptionalString(value: Option[String])
-
   private object AsOptionalString {
-    def unapply(string: JString) : Option[OptionalString] = {
-      if ("NO_VALUE_IS_HERE" == string.values) Some(OptionalString(None))
-      else Some(OptionalString(Some(string.values)))
+    def unapply(string: JValue) = string match {
+      case JString(x) => Some(Some(x))
+      case JNothing => Some(None)
+      case _ => None
     }
   }
 
   private object AsOptionValue {
     def unapply(value: JValue) : Option[Option[Value[_]]] = value match {
       case JInt(x) => Some(Some(Value(x)))
-      case JString(x) => if ("NO_VALUE_IS_HERE" == x) None else Some(Some(Value(x)))
+      case JString(x) => Some(Some(Value(x)))
       case JDouble(x) => Some(Some(Value(x)))
       case JBool(x) => Some(Some(Value(x)))
       case JNull => Some(Some(NullValue))
