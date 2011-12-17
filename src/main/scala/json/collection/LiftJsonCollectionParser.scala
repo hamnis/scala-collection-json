@@ -14,7 +14,7 @@ import net.liftweb.json.{JsonAST, JsonParser}
  * To change this template use File | Settings | File Templates.
  */
 
-class LiftJsonParser {
+class LiftJsonCollectionParser extends JsonCollectionParser {
   private val EMPTY_ARRAY = Some(JArray(Nil))
   private val EMPTY_VALUE = Some(JNothing)
 

@@ -7,7 +7,7 @@ import java.net.URI
 import jsonij.json._
 import java.lang.IllegalStateException
 
-class StreamingJsonParser {
+class StreamingJsonCollectionParser extends JsonCollectionParser {
   private val parser = new JSONParser
 
   def parse(reader: Reader): Either[Exception, JsonCollection] = {

@@ -5,7 +5,7 @@ import java.io.InputStreamReader
 import java.net.URI
 
 class JsonParserSpec extends Specification {
-  val parser = new LiftJsonParser()
+  val parser = new LiftJsonCollectionParser()
   val href = URI.create("http://example.org/friends/")
   "parsing json " should {
     "minimal" in {

@@ -44,12 +44,12 @@ sealed trait Version {
 
 object Version {
   def apply(id: String) : Version = id match {
-    case "1.0" => ONE
+    case ONE.name => ONE
     case _ => ONE
   }
 
   case object ONE extends Version {
-    def name = "1.0"
+    val name = "1.0"
   }
   
   def unapply(version: Version) = Some(version.name)
