@@ -38,15 +38,21 @@ object JsonCollection {
 
 }
 
-sealed class Version(id:String)
+sealed trait Version {
+  def name: String
+}
 
 object Version {
-  def apply(id: String) = id match {
+  def apply(id: String) : Version = id match {
     case "1.0" => ONE
     case _ => ONE
   }
 
-  case object ONE extends Version("1.0")
+  case object ONE extends Version {
+    def name = "1.0"
+  }
+  
+  def unapply(version: Version) = Some(version.name)
 }
 
 sealed trait Property {
@@ -54,7 +60,13 @@ sealed trait Property {
   def prompt : Option[String]
 }
 
-case class PropertyWithValue[A](name: String, prompt: Option[String], value: A) extends Property
+object Property {
+  def apply(name: String, prompt: Option[String], value: Option[Value[Any]]): Property = {
+    value.map(PropertyWithValue(name, prompt, _)).getOrElse(PropertyWithoutValue(name, prompt))
+  }
+}
+
+case class PropertyWithValue[A](name: String, prompt: Option[String], value: Value[A]) extends Property
 case class PropertyWithoutValue(name: String, prompt: Option[String]) extends Property
 
 case class ErrorMessage(title: String, code: Option[String], message: Option[String])
@@ -65,19 +77,19 @@ object Render {
   case object IMAGE extends Render("image")
   case object LINK extends Render("link")
 
-  def apply(value: String): Option[Render] = value match {
-    case "image" => Some(IMAGE)
-    case "link" => Some(LINK)
-    case _ => None
+  def apply(value: String): Render = value match {
+    case "image" => IMAGE
+    case "link" => LINK
+    case _ => LINK
   }
 }
 
-sealed trait Value[A] {
+sealed trait Value[+A] {
   def value: A
 }
 
 object Value {
-  def apply(any: Any) = any match {
+  def apply(any: Any): Value[Any] = any match {
     case x: String => StringValue(x)
     case x: Boolean => BooleanValue(x)
     case x: Numeric[_] => NumericValue(x)

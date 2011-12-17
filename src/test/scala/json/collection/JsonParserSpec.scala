@@ -5,7 +5,7 @@ import java.io.InputStreamReader
 import java.net.URI
 
 class JsonParserSpec extends Specification {
-  val parser = new JsonParser()
+  val parser = new LiftJsonParser()
   val href = URI.create("http://example.org/friends/")
   "parsing json " should {
     "minimal" in {
@@ -46,6 +46,30 @@ class JsonParserSpec extends Specification {
         case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, links, List(item), Nil, None, None))
       }
 
+    }
+
+    "links" in {
+      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/links.json")))
+      val links = List(
+        Link(URI.create("http://example.org/friends/rss"), "feed"),
+        Link(URI.create("http://example.org/friends/?queries"), "queries"),
+        Link(URI.create("http://example.org/friends/?template"), "template")
+      )
+      result match {
+        case Left(ex) => throw ex
+        case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, links, Nil, Nil, None, None))
+      }
+    }
+
+    "queries" in {
+      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/queries.json")))
+      val queries = List(
+        Query(URI.create("http://example.org/friends/search"), "search", Some("Search"), List(Property("search", None, Some(StringValue("")))))
+      )
+      result match {
+        case Left(ex) => throw ex
+        case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, queries, None, None))
+      }
     }
 
     "template" in {

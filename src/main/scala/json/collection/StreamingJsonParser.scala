@@ -7,7 +7,7 @@ import java.net.URI
 import jsonij.json._
 import java.lang.IllegalStateException
 
-class JsonParser {
+class StreamingJsonParser {
   private val parser = new JSONParser
 
   def parse(reader: Reader): Either[Exception, JsonCollection] = {
@@ -113,7 +113,7 @@ class JsonParser {
         case "href" => href = Some(URI.create(extractString(target)))
         case "rel" => rel = Some(extractString(target))
         case "prompt" => prompt = Some(extractString(target))
-        case "render" => render = Render(extractString(target))
+        case "render" => render = Some(Render(extractString(target)))
       }
 
       Link(href.getOrElse(fail("Link")), rel.getOrElse(fail("Link")), prompt, render.getOrElse(Render.LINK))
