@@ -95,6 +95,28 @@ class LiftJsonParser {
   private def toItems(list: List[JValue]) : List[Item] = list.map(toItem)
   private def toData(list: List[JValue]): List[Property] = list.map(toProperty)
   private def toQueries(list: List[JValue]): List[Query] = list.map(toQuery)
+  private def toTemplate(obj: Option[JValue]): Option[Template] = obj.flatMap(toTemplate)
+  private def toError(obj: Option[JValue]): Option[ErrorMessage] = obj.flatMap(toError)
+
+  val toTemplate: PartialFunction[JValue, Option[Template]] = {
+    case JObject(fields) => {
+      val map = fieldAsMap(fields)
+      for {
+        AsList(data) <- map.get("data").orElse(EMPTY_ARRAY)
+      } yield Template(toData(data))
+    }
+  }
+
+  val toError: PartialFunction[JValue, Option[ErrorMessage]] = {
+    case JObject(fields) => {
+      val map = fieldAsMap(fields)
+      for {
+        AsString(title) <- map.get("title")
+        AsOptionalString(code) <- map.get("code").orElse(EMPTY_VALUE)
+        AsOptionalString(message) <- map.get("message").orElse(EMPTY_VALUE)
+      } yield ErrorMessage(title, code.value, message.value)
+    }
+  }
 
   private def parseCollection(obj: JObject): Option[JsonCollection] = {
     val fields = fieldAsMap(obj.obj)
@@ -104,9 +126,9 @@ class LiftJsonParser {
       AsList(links) <- fields.get("links").orElse(EMPTY_ARRAY)
       AsList(items) <- fields.get("items").orElse(EMPTY_ARRAY)
       AsList(queries) <- fields.get("queries").orElse(Some(JArray(Nil)))
-      //AsObject(template) <- fields.get("template").orElse(None)
-      //AsObject(error) <- fields.get("error").orElse(None)
-    } yield JsonCollection(Version(version), href, toLinks(links), toItems(items), toQueries(queries), None, None)
+      AsObject(template) <- fields.get("template").orElse(Some(JObject(Nil)))
+      AsObject(error) <- fields.get("error").orElse(Some(JObject(Nil)))
+    } yield JsonCollection(Version(version), href, toLinks(links), toItems(items), toQueries(queries), toTemplate(template), toError(error))
     option
   }
 
@@ -145,6 +167,6 @@ class LiftJsonParser {
   }
 
   private object AsObject {
-    def unapply(obj: JObject) = Some(obj)
+    def unapply(obj: JObject) = if (obj.obj.isEmpty) Some(None) else Some(Some(obj))
   }
 }

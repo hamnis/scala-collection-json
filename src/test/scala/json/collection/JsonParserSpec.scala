@@ -86,5 +86,14 @@ class JsonParserSpec extends Specification {
       }
 
     }
+    "error" in {
+      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/error.json")))
+      val error = Some(ErrorMessage("Server Error", Some("X1C2"), Some("The server have encountered an error, please wait and try again.")))
+      result match {
+        case Left(ex) => throw ex
+        case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, error))
+      }
+
+    }
   }
 }
