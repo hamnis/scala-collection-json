@@ -151,7 +151,7 @@ class StreamingJsonCollectionParser extends JsonCollectionParser {
   private val parseProperty: (JSONReader) => Property = {
     target => {
       var name: Option[String] = None
-      var value: Option[Value[_]] = None
+      var value: Option[Value] = None
       var prompt: Option[String] = None
       populateFields(target) {
         case "name" => name = Some(extractString(target))
@@ -159,7 +159,7 @@ class StreamingJsonCollectionParser extends JsonCollectionParser {
         case "value" => value = Some(parseValue(target))
       }
       val actualName = name.getOrElse(throw new IllegalStateException("Name missing from property"))
-      value.map(PropertyWithValue(actualName, prompt, _)).getOrElse(PropertyWithoutValue(actualName, prompt))
+      Property(actualName, prompt, value)
     }
   }
 

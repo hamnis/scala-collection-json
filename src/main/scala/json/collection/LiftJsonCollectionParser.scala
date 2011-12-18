@@ -150,7 +150,7 @@ class LiftJsonCollectionParser extends JsonCollectionParser {
   }
 
   private object AsOptionValue {
-    def unapply(value: JValue) : Option[Option[Value[_]]] = value match {
+    def unapply(value: JValue) : Option[Option[Value]] = value match {
       case JInt(x) => Some(Some(Value(x)))
       case JString(x) => Some(Some(Value(x)))
       case JDouble(x) => Some(Some(Value(x)))

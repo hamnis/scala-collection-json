@@ -28,8 +28,8 @@ class JsonParserSpec extends Specification {
       val item = Item(
         URI.create("http://example.org/friends/jdoe"),
         List(
-          PropertyWithValue("full-name", Some("Full Name"), Value("J. Doe")),
-          PropertyWithValue("email", Some("Email"), Value("jdoe@example.org"))
+          Property("full-name", Some("Full Name"), Some(Value("J. Doe"))),
+          Property("email", Some("Email"), Some(Value("jdoe@example.org")))
         ),
         List(
           Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),
@@ -75,10 +75,10 @@ class JsonParserSpec extends Specification {
     "template" in {
       val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/template.json")))
       val template = Some(Template(List(
-          PropertyWithValue("full-name", Some("Full Name"), Value("")),
-          PropertyWithValue("email", Some("Email"), Value("")),
-          PropertyWithValue("blog", Some("Blog"), Value("")),
-          PropertyWithValue("avatar", Some("Avatar"), Value(""))
+        Property("full-name", Some("Full Name"), Some(Value(""))),
+        Property("email", Some("Email"), Some(Value(""))),
+        Property("blog", Some("Blog"), Some(Value(""))),
+        Property("avatar", Some("Avatar"), Some(Value("")))
         )))
       result match {
         case Left(ex) => throw ex

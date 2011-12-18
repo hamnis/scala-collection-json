@@ -1,15 +1,45 @@
 package json.collection
 
 import java.net.URI
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.JsonDSL._
 
 case class JsonCollection(version: Version = Version.ONE,
                           href: URI,
-                          links: Seq[Link],
-                          items: Seq[Item],
-                          queries: Seq[Query],
+                          links: List[Link],
+                          items: List[Item],
+                          queries: List[Query],
                           template: Option[Template],
                           error: Option[ErrorMessage]
-                          )
+                          ) extends ToJson {
+  def addItem(item: Item) = copy(error = None, items = item :: items)
+
+  def addLink(link: Link) = copy(error = None, links =  link :: links)
+
+  def addQuery(query: Query) = copy(error = None, queries =  query :: queries)
+  
+  def withTemplate(template: Template) = copy(error = None, template = Some(template))
+
+  def withError(error: ErrorMessage) = JsonCollection(version, href, links, Nil, Nil, None, Some(error))
+  
+  def isError = error.isDefined
+
+
+  def toJson: JValue = {
+    ("collection" ->
+      ("version" -> version.name) ~
+      ("href" -> href.toString) ~
+      ("links" -> links.map(_.toJson)) ~
+      ("items" -> items.map(_.toJson)) ~
+      ("queries" -> queries.map(_.toJson)) ~
+      ("template" -> template.map(_.toJson))
+    )
+  }
+}
+
+trait ToJson {
+  def toJson: JValue
+}
 
 object JsonCollection {
 
@@ -19,21 +49,25 @@ object JsonCollection {
     JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, Some(error))
 
   def apply(href: URI,
-            links: Seq[Link],
-            items: Seq[Item],
-            template: Option[Template],
-            queries: Seq[Query]):JsonCollection =
+            links: List[Link],
+            items: List[Item],
+            queries: List[Query],
+            template: Option[Template]
+            ):JsonCollection =
     JsonCollection(Version.ONE, href, links, items, queries, template, None)
 
   def apply(href: URI,
-            links: Seq[Link],
-            items: Seq[Item],
-            queries: Seq[Query]):JsonCollection =
+            links: List[Link],
+            items: List[Item],
+            queries: List[Query]):JsonCollection =
     JsonCollection(Version.ONE, href, links, items, queries, None, None)
 
+  def apply(href: URI, links: List[Link], item: Item): JsonCollection =
+    JsonCollection(Version.ONE, href, links, List(item), Nil, None, None)
+
   def apply(href: URI,
-            links: Seq[Link],
-            items: Seq[Item]):JsonCollection =
+            links: List[Link],
+            items: List[Item]):JsonCollection =
     JsonCollection(Version.ONE, href, links, items, Nil, None, None)
 
 }
@@ -55,23 +89,17 @@ object Version {
   def unapply(version: Version) = Some(version.name)
 }
 
-sealed trait Property {
-  def name : String
-  def prompt : Option[String]
-}
-
-object Property {
-  def apply(name: String, prompt: Option[String], value: Option[Value[Any]]): Property = {
-    value.map(PropertyWithValue(name, prompt, _)).getOrElse(PropertyWithoutValue(name, prompt))
+case class Property(name: String, prompt: Option[String] = None, value: Option[Value] = None) extends ToJson {
+  def toJson = {
+    ("name" -> name) ~
+    ("value" -> value.map(_.toJson)) ~
+    ("prompt" -> prompt)
   }
 }
 
-case class PropertyWithValue[A](name: String, prompt: Option[String], value: Value[A]) extends Property
-case class PropertyWithoutValue(name: String, prompt: Option[String]) extends Property
-
 case class ErrorMessage(title: String, code: Option[String], message: Option[String])
 
-sealed abstract class Render(name: String)
+sealed abstract class Render(val name: String)
 
 object Render {
   case object IMAGE extends Render("image")
@@ -84,41 +112,74 @@ object Render {
   }
 }
 
-sealed trait Value[+A] {
+sealed trait Value extends ToJson {
+  type A
   def value: A
 }
 
 object Value {
-  def apply(any: Any): Value[Any] = any match {
+  def apply(any: Any): Value = any match {
     case x: String => StringValue(x)
     case x: Boolean => BooleanValue(x)
-    case x: Numeric[_] => NumericValue(x)
+    case x: Double => NumericValue(x)
+    case x: Int => NumericValue(x)
+    case x: Long => NumericValue(x)
+    case x: BigDecimal => NumericValue(x)
     case null => NullValue
   }
 }
 
-case class StringValue(value: String) extends Value[String]
+case class StringValue(value: String) extends Value {
+  def toJson = value
 
-case class NumericValue(value: Numeric[_]) extends Value[Numeric[_]]
-
-case class BooleanValue(value: Boolean) extends Value[Boolean]
-
-case object NullValue extends Value[Null] {
-  def value = null
+  type A = String
 }
 
-case class Link(href: URI, rel: String, prompt: Option[String] = None, render: Render = Render.LINK)
-case class Item(href: URI, properties: Seq[Property], links: Seq[Link])
-case class Query(href: URI, rel: String, prompt: Option[String], properties: Seq[Property])
-case class Template(properties: Seq[Property])
+case class NumericValue(value: BigDecimal) extends Value {
+  type A = BigDecimal
 
-case class Extensions(map: Map[String, Any])
+  def toJson = value
+}
 
-object Conversions {
-  implicit def stringToValue(value: String)   = Some(Value(value))
-  implicit def numericToValue(value: Numeric[_]) = Some(Value(value))
-  implicit def booleanToValue(value: Boolean) = Some(Value(value))
-  implicit def nullToValue(value: Null) = Some(Value(value))
+case class BooleanValue(value: Boolean) extends Value {
+  def toJson = value
 
-  //implicit def valueToType[A](value: Option[Value[A]]) = value.map(_.value)
+  type A = Boolean
+}
+
+case object NullValue extends Value {
+  def value = null
+
+  def toJson = JNull
+
+  type A = Null
+}
+
+case class Link(href: URI, rel: String, prompt: Option[String] = None, render: Render = Render.LINK) {
+  def toJson: JValue = {
+    ("href" -> href.toString) ~
+    ("rel" -> rel) ~
+    ("prompt", prompt) ~
+    ("render", render.name)
+   }
+}
+case class Item(href: URI, data: List[Property], links: List[Link]) {
+  def toJson: JValue = {
+    ("href" -> href.toString) ~
+    ("data" -> data.map(_.toJson))
+    ("links" -> links.map(_.toJson))
+  }
+}
+case class Query(href: URI, rel: String, prompt: Option[String], data: List[Property]) {
+  def toJson: JValue = {
+    ("href" -> href.toString) ~
+    ("rel" -> rel) ~
+    ("prompt" -> prompt) ~
+    ("data" -> data.map(_.toJson))
+  }
+}
+case class Template(data: List[Property]) {
+  def toJson: JValue = {
+    ("data" -> data.map(_.toJson))
+  }
 }
