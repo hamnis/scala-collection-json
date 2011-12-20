@@ -138,7 +138,7 @@ case class StringValue(value: String) extends Value {
 case class NumericValue(value: BigDecimal) extends Value {
   type A = BigDecimal
 
-  def toJson = value
+  def toJson = if (value.isValidInt) value.intValue() else value.doubleValue()
 }
 
 case class BooleanValue(value: Boolean) extends Value {
