@@ -1,3 +1,4 @@
+package net.hamnaberg
 package json.collection
 
 import java.io.Reader
