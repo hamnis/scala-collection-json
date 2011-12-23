@@ -251,20 +251,19 @@ private[collection] sealed trait PropertyContainer {
 
   def data: List[Property]
 
-  private lazy val asMap = data.foldLeft(Map[String, Property]())((acc, p) => acc + (p.name -> p))
+  def getProperty(name: String) = data.find(_.name == name)
 
-  def getProperty(name: String) = asMap.get(name)
-
-  def addProperty(property: Property) = copyData(data ::: List(property))
-
-  def replaceProperty(property: Property) = {
+  def addProperty(property: Property) = {
     val index = data.indexWhere(_.name == property.name)
     if (index == -1) {
-      add(property)
+      copyData(data ::: List(property))
     }
     else {
       copyData(data.updated(index, property))
     }
   }
+
+  def removeProperty(name: String) = copyData(data.filterNot(_.name == name))
+
   protected def copyData(data: List[Property]) : T
 }
