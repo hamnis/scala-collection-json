@@ -10,14 +10,14 @@ class JsonParserSpec extends Specification {
   val href = URI.create("http://example.org/friends/")
   "parsing json " should {
     "minimal" in {
-      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/minimal.json")))
+      val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/minimal.json")))
       result match {
         case Left(ex) => throw ex
         case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, None))
       }
     }
     "minimal without version" in {
-      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/minimal-without-version.json")))
+      val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/minimal-without-version.json")))
       result match {
         case Left(ex) => throw ex
         case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, None))
@@ -25,7 +25,7 @@ class JsonParserSpec extends Specification {
     }
 
     "one item" in {
-      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/item.json")))
+      val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/item.json")))
       val item = Item(
         URI.create("http://example.org/friends/jdoe"),
         List(
@@ -50,7 +50,7 @@ class JsonParserSpec extends Specification {
     }
 
     "links" in {
-      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/links.json")))
+      val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/links.json")))
       val links = List(
         Link(URI.create("http://example.org/friends/rss"), "feed"),
         Link(URI.create("http://example.org/friends/?queries"), "queries"),
@@ -63,7 +63,7 @@ class JsonParserSpec extends Specification {
     }
 
     "queries" in {
-      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/queries.json")))
+      val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/queries.json")))
       val queries = List(
         Query(URI.create("http://example.org/friends/search"), "search", Some("Search"), List(Property("search", None, Some(StringValue("")))))
       )
@@ -74,7 +74,7 @@ class JsonParserSpec extends Specification {
     }
 
     "template" in {
-      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/template.json")))
+      val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/template.json")))
       val template = Some(Template(List(
         Property("full-name", Some("Full Name"), Some(Value(""))),
         Property("email", Some("Email"), Some(Value(""))),
@@ -88,7 +88,7 @@ class JsonParserSpec extends Specification {
 
     }
     "error" in {
-      val result = parser.parse(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/error.json")))
+      val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/error.json")))
       val error = Some(ErrorMessage("Server Error", Some("X1C2"), Some("The server have encountered an error, please wait and try again.")))
       result match {
         case Left(ex) => throw ex
@@ -116,7 +116,7 @@ class JsonParserSpec extends Specification {
       import net.liftweb.json._
       val rendered = compact(render(expected.toJson))
       println(rendered)
-      val parsed = parser.parse(rendered)
+      val parsed = parser.parseCollection(rendered)
       
       parsed match {
         case Left(ex) => throw ex

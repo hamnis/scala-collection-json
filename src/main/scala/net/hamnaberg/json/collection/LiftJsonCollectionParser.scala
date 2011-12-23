@@ -19,20 +19,31 @@ class LiftJsonCollectionParser extends JsonCollectionParser {
   private val EMPTY_ARRAY = Some(JArray(Nil))
   private val EMPTY_VALUE = Some(JNothing)
 
-  def parse(reader: Reader): Either[Exception, JsonCollection] = {
+  def parseCollection(reader: Reader): Either[Exception, JsonCollection] = {
     try {
       val parsed = JsonParser.parse(reader, true)
-      parse(parsed).map(Right(_)).getOrElse(Left(new Exception("Failed to parse...")))
+      parsed match {
+        case JObject(List(JField("collection", x: JObject))) => parseCollection(x).map(Right(_)).getOrElse(Left(new Exception("Failed to parse collection...")))
+        case _ => throw new IllegalArgumentException("Unexpected json here. was\n %s".format(parsed))
+      }
+      //parse(parsed).map(Right(_)).getOrElse(Left(new Exception("Failed to parse...")))
     }
     catch {
       case e : Exception => Left(e)
     }
   }
 
-  private def parse(value: JValue) = {
-    value match {
-      case JObject(List(JField("collection", x: JObject))) => parseCollection(x)
-      case _ => throw new IllegalArgumentException("Unexpected json here. was\n %s".format(value))
+
+  def parseTemplate(reader: Reader) = {
+    try {
+      val parsed = JsonParser.parse(reader, true)
+      parsed match {
+        case JObject(List(JField("collection", x: JObject))) => toTemplate(x).map(Right(_)).getOrElse(Left(new Exception("Failed to parse Template...")))
+        case _ => throw new IllegalArgumentException("Unexpected json here. was\n %s".format(parsed))
+      }
+    }
+    catch {
+      case e : Exception => Left(e)
     }
   }
 
@@ -121,7 +132,7 @@ class LiftJsonCollectionParser extends JsonCollectionParser {
 
   private def parseCollection(obj: JObject): Option[JsonCollection] = {
     val fields = fieldAsMap(obj.obj)
-    val option = for {
+    for {
       AsURI(href) <- fields.get("href")
       AsString(version) <- fields.get("version").orElse(Some(JString("1.0")))
       AsList(links) <- fields.get("links").orElse(EMPTY_ARRAY)
@@ -130,7 +141,6 @@ class LiftJsonCollectionParser extends JsonCollectionParser {
       AsObject(template) <- fields.get("template").orElse(Some(JObject(Nil)))
       AsObject(error) <- fields.get("error").orElse(Some(JObject(Nil)))
     } yield JsonCollection(Version(version), href, toLinks(links), toItems(items), toQueries(queries), toTemplate(template), toError(error))
-    option
   }
 
 

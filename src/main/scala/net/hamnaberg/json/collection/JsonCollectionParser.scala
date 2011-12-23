@@ -3,6 +3,7 @@ package json.collection
 
 import java.nio.charset.Charset
 import java.io._
+import io.Codec
 
 
 /**
@@ -14,7 +15,16 @@ import java.io._
  */
 
 trait JsonCollectionParser {
-  def parse(reader: Reader): Either[Exception, JsonCollection]
-  def parse(inputStream: InputStream):Either[Exception, JsonCollection] = parse(new BufferedReader(new InputStreamReader(inputStream, Charset.forName("UTF-8"))))
-  def parse(string: String):Either[Exception, JsonCollection] = parse(new StringReader(string))
+  def parseCollection(reader: Reader): Either[Exception, JsonCollection]
+
+  def parseCollection(inputStream: InputStream):Either[Exception, JsonCollection] = parseCollection(new BufferedReader(new InputStreamReader(inputStream, Charset.forName("UTF-8"))))
+
+  def parseCollection(string: String):Either[Exception, JsonCollection] = parseCollection(new StringReader(string))
+
+  def parseTemplate(source: Reader) : Either[Exception, Template]
+
+  def parseTemplate(inputStream: InputStream)(implicit codec:Codec = Codec(Codec.UTF8)):Either[Exception, Template] = parseTemplate(new BufferedReader(new InputStreamReader(inputStream, codec.charSet)))
+
+  def parseTemplate(string: String):Either[Exception, Template] = parseTemplate(new StringReader(string))
+
 }
