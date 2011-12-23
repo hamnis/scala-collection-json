@@ -94,7 +94,34 @@ class JsonParserSpec extends Specification {
         case Left(ex) => throw ex
         case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, error))
       }
-
+    }
+    "generated is the same as parsed" in {
+      val item = Item(
+        URI.create("http://example.org/friends/jdoe"),
+        List(
+          Property("full-name", Some("Full Name"), Some(Value("J. Doe"))),
+          Property("email", Some("Email"), Some(Value("jdoe@example.org")))
+        ),
+        List(
+          Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),
+          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), Render.IMAGE)
+        )
+      )
+      val links = List(
+        Link(URI.create("http://example.org/friends/rss"), "feed"),
+        Link(URI.create("http://example.org/friends/?queries"), "queries"),
+        Link(URI.create("http://example.org/friends/?template"), "template")
+      )
+      val expected = JsonCollection(item.href, links, item)
+      import net.liftweb.json._
+      val rendered = compact(render(expected.toJson))
+      println(rendered)
+      val parsed = parser.parse(rendered)
+      
+      parsed match {
+        case Left(ex) => throw ex
+        case Right(v) => println(v); v must beEqualTo(expected)
+      }
     }
   }
 }
