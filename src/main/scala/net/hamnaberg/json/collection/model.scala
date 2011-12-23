@@ -193,7 +193,7 @@ case class Link(href: URI, rel: String, prompt: Option[String] = None, render: R
   }
 }
 
-case class Item(href: URI, data: List[Property], links: List[Link]) extends ToJson{
+case class Item(href: URI, data: List[Property], links: List[Link]) extends ToJson with PropertyContainer {
   def toJson: JValue = {
     val data = {
       val list = this.data.map(_.toJson)
@@ -207,19 +207,64 @@ case class Item(href: URI, data: List[Property], links: List[Link]) extends ToJs
     ("data" -> data) ~
     ("links" -> links)
   }
+
+
+  type T = Item
+
+  protected def copyData(data: List[Property]) = copy(data = data)
+
+  def toTemplate = Template(data)
 }
 
-case class Query(href: URI, rel: String, prompt: Option[String], data: List[Property]) extends ToJson {
+case class Query(href: URI, rel: String, prompt: Option[String], data: List[Property]) extends ToJson with PropertyContainer{
+
+  type T = Query
+
+  protected def copyData(data: List[Property]) = copy(data = data)
+
   def toJson: JValue = {
     ("href" -> href.toString) ~
       ("rel" -> rel) ~
       ("prompt" -> prompt) ~
       ("data" -> data.map(_.toJson))
   }
+
+  def toURI: URI = {
+    val query = data.map(p => (p.name, p.value.map(_.value.toString).getOrElse(""))).mkString("", "&", "")
+    new URI(href.getScheme, href.getAuthority, href.getHost, href.getPort, href.getPath, query, href.getFragment)
+  }
 }
 
-case class Template(data: List[Property]) extends ToJson {
+case class Template(data: List[Property]) extends ToJson with PropertyContainer{
+
+  type T = Template
+
   def toJson: JValue = {
     ("data" -> data.map(_.toJson))
   }
+
+  protected def copyData(data: List[Property]) = copy(data)
+}
+
+private[collection] sealed trait PropertyContainer {
+  type T <: PropertyContainer
+
+  def data: List[Property]
+
+  private lazy val asMap = data.foldLeft(Map[String, Property]())((acc, p) => acc + (p.name -> p))
+
+  def getProperty(name: String) = asMap.get(name)
+
+  def addProperty(property: Property) = copyData(data ::: List(property))
+
+  def replaceProperty(property: Property) = {
+    val index = data.indexWhere(_.name == property.name)
+    if (index == -1) {
+      add(property)
+    }
+    else {
+      copyData(data.updated(index, property))
+    }
+  }
+  protected def copyData(data: List[Property]) : T
 }
