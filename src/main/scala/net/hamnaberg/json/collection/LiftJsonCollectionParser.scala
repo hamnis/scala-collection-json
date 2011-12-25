@@ -26,7 +26,6 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
         case JObject(List(JField("collection", x: JObject))) => parseCollection(x).map(Right(_)).getOrElse(Left(new Exception("Failed to parse collection...")))
         case _ => throw new IllegalArgumentException("Unexpected json here. was\n %s".format(parsed))
       }
-      //parse(parsed).map(Right(_)).getOrElse(Left(new Exception("Failed to parse...")))
     }
     catch {
       case e : Exception => Left(e)
