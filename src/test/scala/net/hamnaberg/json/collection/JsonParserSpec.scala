@@ -6,7 +6,7 @@ import java.io.InputStreamReader
 import java.net.URI
 
 class JsonParserSpec extends Specification {
-  val parser = new LiftJsonCollectionParser()
+  val parser = LiftJsonCollectionParser
   val href = URI.create("http://example.org/friends/")
   "parsing json " should {
     "minimal" in {
@@ -34,7 +34,7 @@ class JsonParserSpec extends Specification {
         ),
         List(
           Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),
-          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), Render.IMAGE)
+          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), Some(Render.IMAGE))
         )
         )
       val links = List(
@@ -104,7 +104,7 @@ class JsonParserSpec extends Specification {
         ),
         List(
           Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),
-          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), Render.IMAGE)
+          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), Some(Render.IMAGE))
         )
       )
       val links = List(
@@ -115,12 +115,11 @@ class JsonParserSpec extends Specification {
       val expected = JsonCollection(item.href, links, item)
       import net.liftweb.json._
       val rendered = compact(render(expected.toJson))
-      println(rendered)
       val parsed = parser.parseCollection(rendered)
       
       parsed match {
         case Left(ex) => throw ex
-        case Right(v) => println(v); v must beEqualTo(expected)
+        case Right(v) => v must beEqualTo(expected)
       }
     }
   }

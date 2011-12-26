@@ -60,7 +60,7 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
         AsURI(href) <- map.get("href")
         AsString(rel) <- map.get("rel")
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
-        render <- map.get("render").map(toRender).orElse(Some(Render.LINK))
+        render = map.get("render").map(toRender)
       } yield Link(href, rel, prompt, render)
     }.toList
   }
@@ -85,7 +85,6 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
         AsString(rel) <- map.get("rel")
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
         AsList(data) <- map.get("data").orElse(EMPTY_ARRAY)
-        AsList(links) <- map.get("links").orElse(EMPTY_ARRAY)
       } yield Query(href, rel, prompt, toData(data))
     }.toList
   }

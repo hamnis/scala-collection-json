@@ -187,29 +187,12 @@ case object NullValue extends Value {
   type A = Null
 }
 
-/*
-case class StringListValue(list: List[String]) extends Value {
-  def value = list
-
-  def toJson = JArray(list.map(JString(_)))
-
-  type A = List[String]
-}
-
-case class NumericListValue(list: List[BigDecimal]) extends Value {
-  def value = list
-
-  def toJson = JArray(list.map(v => if (v.isValidInt) JInt(v.intValue()) else JDouble(v.doubleValue())))
-
-  type A = List[BigDecimal]
-}*/
-
-case class Link(href: URI, rel: String, prompt: Option[String] = None, render: Render = Render.LINK) {
+case class Link(href: URI, rel: String, prompt: Option[String] = None, render: Option[Render] = None) {
   def toJson: JValue = {
     ("href" -> href.toString) ~
       ("rel" -> rel) ~
       ("prompt", prompt) ~
-      ("render", render.name)
+      ("render", render.map(_.name))
   }
 }
 
