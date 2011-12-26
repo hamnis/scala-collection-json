@@ -85,6 +85,9 @@ object JsonCollection {
   def apply(href: URI, links: List[Link], item: Item): JsonCollection =
     JsonCollection(Version.ONE, href, links, List(item), Nil, None, None)
 
+  def apply(item: Item): JsonCollection =
+    JsonCollection(Version.ONE, item.href, Nil, List(item), Nil, None, None)
+
   def apply(href: URI,
             links: List[Link],
             items: List[Item]): JsonCollection =
@@ -184,6 +187,23 @@ case object NullValue extends Value {
   type A = Null
 }
 
+/*
+case class StringListValue(list: List[String]) extends Value {
+  def value = list
+
+  def toJson = JArray(list.map(JString(_)))
+
+  type A = List[String]
+}
+
+case class NumericListValue(list: List[BigDecimal]) extends Value {
+  def value = list
+
+  def toJson = JArray(list.map(v => if (v.isValidInt) JInt(v.intValue()) else JDouble(v.doubleValue())))
+
+  type A = List[BigDecimal]
+}*/
+
 case class Link(href: URI, rel: String, prompt: Option[String] = None, render: Render = Render.LINK) {
   def toJson: JValue = {
     ("href" -> href.toString) ~
@@ -252,6 +272,8 @@ private[collection] sealed trait PropertyContainer {
   def data: List[Property]
 
   def getProperty(name: String) = data.find(_.name == name)
+
+  def getPropertyValue(name: String) = data.find(_.name == name).flatMap(_.value)
 
   def addProperty(property: Property) = {
     val index = data.indexWhere(_.name == property.name)
