@@ -4,6 +4,7 @@ package json.collection
 import org.specs2.mutable.Specification
 import java.io.InputStreamReader
 import java.net.URI
+import net.liftweb.json.JsonAST.JString
 
 class JsonParserSpec extends Specification {
   val parser = LiftJsonCollectionParser
@@ -29,8 +30,8 @@ class JsonParserSpec extends Specification {
       val item = Item(
         URI.create("http://example.org/friends/jdoe"),
         List(
-          Property("full-name", Some("Full Name"), Some(Value("J. Doe"))),
-          Property("email", Some("Email"), Some(Value("jdoe@example.org")))
+          Property("full-name", Some("Full Name"), Some(JString("J. Doe"))),
+          Property("email", Some("Email"), Some(JString("jdoe@example.org")))
         ),
         List(
           Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),
@@ -65,7 +66,7 @@ class JsonParserSpec extends Specification {
     "queries" in {
       val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/queries.json")))
       val queries = List(
-        Query(URI.create("http://example.org/friends/search"), "search", Some("Search"), List(Property("search", None, Some(StringValue("")))))
+        Query(URI.create("http://example.org/friends/search"), "search", Some("Search"), List(Property("search", None, Some(JString("")))))
       )
       result match {
         case Left(ex) => throw ex
@@ -76,10 +77,10 @@ class JsonParserSpec extends Specification {
     "template" in {
       val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/template.json")))
       val template = Some(Template(List(
-        Property("full-name", Some("Full Name"), Some(Value(""))),
-        Property("email", Some("Email"), Some(Value(""))),
-        Property("blog", Some("Blog"), Some(Value(""))),
-        Property("avatar", Some("Avatar"), Some(Value("")))
+        Property("full-name", Some("Full Name"), Some(JString(""))),
+        Property("email", Some("Email"), Some(JString(""))),
+        Property("blog", Some("Blog"), Some(JString(""))),
+        Property("avatar", Some("Avatar"), Some(JString("")))
         )))
       result match {
         case Left(ex) => throw ex
@@ -99,8 +100,8 @@ class JsonParserSpec extends Specification {
       val item = Item(
         URI.create("http://example.org/friends/jdoe"),
         List(
-          Property("full-name", Some("Full Name"), Some(Value("J. Doe"))),
-          Property("email", Some("Email"), Some(Value("jdoe@example.org")))
+          Property("full-name", Some("Full Name"), Some(JString("J. Doe"))),
+          Property("email", Some("Email"), Some(JString("jdoe@example.org")))
         ),
         List(
           Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),

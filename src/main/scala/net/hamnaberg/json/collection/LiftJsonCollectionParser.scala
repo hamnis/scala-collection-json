@@ -71,9 +71,10 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
       val map = fieldAsMap(fields)
       for {
         AsURI(href) <- map.get("href")
+        rel = map.get("rel").map(_.values.toString)
         AsList(data) <- map.get("data").orElse(EMPTY_ARRAY)
         AsList(links) <- map.get("links").orElse(EMPTY_ARRAY)
-      } yield Item(href, toData(data), toLinks(links))
+      } yield Item(href, rel, toData(data), toLinks(links))
     }.toList
   }
 
@@ -95,7 +96,11 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
       val property = for {
         AsString(name) <- map.get("name")
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
-        AsOptionValue(value) <- map.get("value").orElse(EMPTY_VALUE)
+        value = map.get("value").flatMap{
+          case JNothing => None
+          case JNull => None
+          case x => Some(x)
+        }
       } yield Property(name, prompt, value)
       property.toList
     }
@@ -153,18 +158,6 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
   private object AsOptionalString {
     def unapply(string: JValue) = string match {
       case JString(x) => Some(Some(x))
-      case JNothing => Some(None)
-      case _ => None
-    }
-  }
-
-  private object AsOptionValue {
-    def unapply(value: JValue) : Option[Option[Value]] = value match {
-      case JInt(x) => Some(Some(Value(x)))
-      case JString(x) => Some(Some(Value(x)))
-      case JDouble(x) => Some(Some(Value(x)))
-      case JBool(x) => Some(Some(Value(x)))
-      case JNull => Some(Some(NullValue))
       case JNothing => Some(None)
       case _ => None
     }

@@ -112,11 +112,11 @@ object Version {
   def unapply(version: Version) = Some(version.name)
 }
 
-case class Property(name: String, prompt: Option[String] = None, value: Option[Value] = None) extends ToJson {
+case class Property(name: String, prompt: Option[String] = None, value: Option[JValue] = None) extends ToJson {
   def toJson = {
     ("name" -> name) ~
-      ("value" -> value.map(_.toJson)) ~
-      ("prompt" -> prompt)
+      ("prompt" -> prompt) ~
+      ("value" -> value)
   }
 }
 
@@ -143,50 +143,6 @@ object Render {
   }
 }
 
-sealed trait Value extends ToJson {
-  type A
-
-  def value: A
-}
-
-object Value {
-  def apply(any: Any): Value = any match {
-    case x: String => StringValue(x)
-    case x: Boolean => BooleanValue(x)
-    case x: Double => NumericValue(x)
-    case x: Int => NumericValue(x)
-    case x: Long => NumericValue(x)
-    case x: BigDecimal => NumericValue(x)
-    case null => NullValue
-  }
-}
-
-case class StringValue(value: String) extends Value {
-  def toJson = value
-
-  type A = String
-}
-
-case class NumericValue(value: BigDecimal) extends Value {
-  type A = BigDecimal
-
-  def toJson = if (value.isValidInt) value.intValue() else value.doubleValue()
-}
-
-case class BooleanValue(value: Boolean) extends Value {
-  def toJson = value
-
-  type A = Boolean
-}
-
-case object NullValue extends Value {
-  def value = null
-
-  def toJson = JNull
-
-  type A = Null
-}
-
 case class Link(href: URI, rel: String, prompt: Option[String] = None, render: Option[Render] = None) {
   def toJson: JValue = {
     ("href" -> href.toString) ~
@@ -196,7 +152,7 @@ case class Link(href: URI, rel: String, prompt: Option[String] = None, render: O
   }
 }
 
-case class Item(href: URI, data: List[Property], links: List[Link]) extends ToJson with PropertyContainer {
+case class Item(href: URI, rel: Option[String], data: List[Property], links: List[Link]) extends ToJson with PropertyContainer {
   def toJson: JValue = {
     val data = {
       val list = this.data.map(_.toJson)
@@ -207,16 +163,23 @@ case class Item(href: URI, data: List[Property], links: List[Link]) extends ToJs
       if (list.isEmpty) JNothing else JArray(list)
     }
     ("href" -> href.toString) ~
+    ("rel" -> rel) ~
     ("data" -> data) ~
     ("links" -> links)
   }
-
-
+  
   type T = Item
 
   protected def copyData(data: List[Property]) = copy(data = data)
 
   def toTemplate = Template(data)
+}
+
+object Item {
+  def apply(href: URI, data: List[Property], links: List[Link]): Item = {
+    apply(href, None, data, links)
+  }
+  
 }
 
 case class Query(href: URI, rel: String, prompt: Option[String], data: List[Property]) extends ToJson with PropertyContainer{
@@ -233,7 +196,7 @@ case class Query(href: URI, rel: String, prompt: Option[String], data: List[Prop
   }
 
   def toURI: URI = {
-    val query = data.map(p => (p.name, p.value.map(_.value.toString).getOrElse(""))).mkString("", "&", "")
+    val query = data.map(p => (p.name, p.value.map(_.values.toString).getOrElse(""))).mkString("", "&", "")
     new URI(href.getScheme, href.getAuthority, href.getHost, href.getPort, href.getPath, query, href.getFragment)
   }
 }
