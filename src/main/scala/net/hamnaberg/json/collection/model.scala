@@ -24,6 +24,21 @@ case class JsonCollection(version: Version = Version.ONE,
   def withError(error: ErrorMessage) = JsonCollection(version, href, links, Nil, Nil, None, Some(error))
 
   def isError = error.isDefined
+  
+  def isItemCollection = {
+    items match {
+      case List(i) => i.href == href
+      case _ => false
+    }
+  }
+
+  def findLinkByRel(rel: String) = links.find(_.rel == rel)
+
+  def findItemByRel(rel: String) = items.find(_.rel == Some(rel))
+
+  def findQueryByRel(rel: String) = queries.find(_.rel == rel)
+
+  def images = links.filter(_.render == Some(Render.IMAGE))
 
   def toJson: JValue = {
     val items = {
@@ -153,6 +168,11 @@ case class Link(href: URI, rel: String, prompt: Option[String] = None, render: O
 }
 
 case class Item(href: URI, rel: Option[String], data: List[Property], links: List[Link]) extends ToJson with PropertyContainer {
+
+  def findLinkByRel(rel: String) = links.find(_.rel == rel)
+
+  def images = links.filter(_.render == Some(Render.IMAGE))
+
   def toJson: JValue = {
     val data = {
       val list = this.data.map(_.toJson)
