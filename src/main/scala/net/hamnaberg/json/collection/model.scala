@@ -127,11 +127,75 @@ object Version {
   def unapply(version: Version) = Some(version.name)
 }
 
-case class Property(name: String, prompt: Option[String] = None, value: Option[JValue] = None) extends ToJson {
+
+sealed trait Value[A] extends ToJson {
+  def value: A
+
+  def toJson: JValue = {
+    Value.toJson(this)
+  }
+}
+
+object Value {
+  case class StringValue(value: String) extends Value[String]
+  case class NumberValue(value: BigDecimal) extends Value[BigDecimal]
+  case class BooleanValue(value: Boolean) extends Value[Boolean]
+  case object NullValue extends Value[Null] {
+    def value = null
+  }
+
+  def apply(v: JValue): Option[Value[_]] = {
+    v match {
+      case JString(s) => Some(StringValue(s))
+      case JDouble(d) => Some(NumberValue(BigDecimal(d)))
+      case JInt(d) => Some(NumberValue(BigDecimal(d)))
+      case JBool(d) => Some(BooleanValue(d))
+      case JNull => Some(NullValue)
+      case _ => throw new IllegalArgumentException("Illegal value type")
+    }
+  }
+
+  private def toJson(value: Value[_]): JValue = value match {
+    case StringValue(s) => JString(s)
+    case NumberValue(n) => if (n.isValidInt) JInt(n.intValue()) else JDouble(n.doubleValue())
+    case BooleanValue(n) => JBool(n)
+    case NullValue => JNull
+    case _ => throw new IllegalArgumentException("Unknown value type")
+  }
+
+}
+
+sealed trait Property extends ToJson {
+  type A
+  def name: String
+  def prompt: Option[String]
+  def value: A
+}
+
+case class ValueProperty(name: String, prompt: Option[String] = None, value: Option[Value[_]] = None) extends Property {
+  type A = Option[Value[_]]
   def toJson = {
     ("name" -> name) ~
       ("prompt" -> prompt) ~
-      ("value" -> value)
+      ("value" -> value.map(_.toJson))
+  }
+}
+
+case class ListProperty[List[Value[_]]](name: String, prompt: Option[String] = None, value: Seq[Value[_]] = Nil) extends Property {
+  type A = Seq[Value[_]]
+  def toJson = {
+    ("name" -> name) ~
+      ("prompt" -> prompt) ~
+      ("array" -> value.map(_.toJson))
+  }
+}
+
+case class ObjectProperty[List[Value[_]]](name: String, prompt: Option[String] = None, value: Map[String, Value[_]] = Map.empty) extends Property {
+  type A = Map[String, Value[_]]
+  def toJson = {
+    ("name" -> name) ~
+      ("prompt" -> prompt) ~
+      ("object" -> JObject(value.map{case (x,y) => JField(x, y.toJson)}))
   }
 }
 
@@ -202,7 +266,7 @@ object Item {
   
 }
 
-case class Query(href: URI, rel: String, prompt: Option[String], data: List[Property]) extends ToJson with PropertyContainer{
+case class Query(href: URI, rel: String, prompt: Option[String], data: List[Property]) extends ToJson with PropertyContainer {
 
   type T = Query
 
@@ -216,8 +280,13 @@ case class Query(href: URI, rel: String, prompt: Option[String], data: List[Prop
   }
 
   def toURI: URI = {
-    val query = data.map(p => (p.name, p.value.map(_.values.toString).getOrElse(""))).mkString("", "&", "")
-    new URI(href.getScheme, href.getAuthority, href.getHost, href.getPort, href.getPath, query, href.getFragment)
+    val query = data.map(p => p match {
+      case ValueProperty(n, _, v) => {
+        "%s=%s".format(n,v.map(_.value.toString).getOrElse(""))
+      }
+      case _ => throw new IllegalArgumentException("Not a supported property type")
+    }).mkString("", "&", "")
+    new URI(href.getScheme, href.getUserInfo, href.getHost, href.getPort, href.getPath, query, href.getFragment)
   }
 }
 
@@ -239,7 +308,11 @@ private[collection] sealed trait PropertyContainer {
 
   def getProperty(name: String) = data.find(_.name == name)
 
-  def getPropertyValue(name: String) = data.find(_.name == name).flatMap(_.value)
+  def getPropertyValue(name: String): Option[Any] = getProperty(name).flatMap {
+    case ValueProperty(_, _, v) => v
+    case ListProperty(_, _, v) => if (v.isEmpty) None else Some(v)
+    case ObjectProperty(_, _, v) => if (v.isEmpty) None else Some(v)
+  }
 
   def addProperty(property: Property) = {
     val index = data.indexWhere(_.name == property.name)

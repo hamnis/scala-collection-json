@@ -98,10 +98,28 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
         AsOptionalString(prompt) <- map.get("prompt").orElse(EMPTY_VALUE)
         value = map.get("value").flatMap{
           case JNothing => None
-          case JNull => None
-          case x => Some(x)
+          case x => Value(x)
         }
-      } yield Property(name, prompt, value)
+        array = map.get("array").map {
+          case JNothing => Nil
+          case JArray(x) => x.flatMap(Value(_).toList)
+          case _ => sys.error("Unexpected value type here")
+        }.getOrElse(Nil)
+        obj = map.get("object").map {
+          case JNothing => Map.empty[String, Value[_]]
+          case JObject(f) => {
+            val m: List[(String, Option[Value[_]])] = f.map {
+              case JField(n, v) => n -> Value(v)
+            }
+            m.collect{case (k, Some(v)) => k -> v}.toMap[String, Value[_]]
+          }
+          case _ => sys.error("Unexpected value type here")
+        }.getOrElse(Map.empty[String, Value[_]])
+      } yield {
+        if (!obj.isEmpty) ObjectProperty(name, prompt, obj)
+        else if (!array.isEmpty) ListProperty(name, prompt, array)
+        else ValueProperty(name, prompt, value)
+      }
       property.toList
     }
   }
