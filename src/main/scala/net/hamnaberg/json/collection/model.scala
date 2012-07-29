@@ -181,7 +181,7 @@ case class ValueProperty(name: String, prompt: Option[String] = None, value: Opt
   }
 }
 
-case class ListProperty[List[Value[_]]](name: String, prompt: Option[String] = None, value: Seq[Value[_]] = Nil) extends Property {
+case class ListProperty(name: String, prompt: Option[String] = None, value: Seq[Value[_]] = Nil) extends Property {
   type A = Seq[Value[_]]
   def toJson = {
     ("name" -> name) ~
@@ -190,7 +190,7 @@ case class ListProperty[List[Value[_]]](name: String, prompt: Option[String] = N
   }
 }
 
-case class ObjectProperty[List[Value[_]]](name: String, prompt: Option[String] = None, value: Map[String, Value[_]] = Map.empty) extends Property {
+case class ObjectProperty(name: String, prompt: Option[String] = None, value: Map[String, Value[_]] = Map.empty) extends Property {
   type A = Map[String, Value[_]]
   def toJson = {
     ("name" -> name) ~
