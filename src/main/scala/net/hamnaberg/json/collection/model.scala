@@ -195,7 +195,7 @@ case class ObjectProperty(name: String, prompt: Option[String] = None, value: Ma
   def toJson = {
     ("name" -> name) ~
       ("prompt" -> prompt) ~
-      ("object" -> JObject(value.map{case (x,y) => JField(x, y.toJson)}))
+      ("object" -> JObject(value.map{case (x,y) => JField(x, y.toJson)}.toList))
   }
 }
 
@@ -308,10 +308,26 @@ private[collection] sealed trait PropertyContainer {
 
   def getProperty(name: String) = data.find(_.name == name)
 
-  def getPropertyValue(name: String): Option[Any] = getProperty(name).flatMap {
+  def getPropertyValue(name: String): Option[Value[_]] = getProperty(name).flatMap {
     case ValueProperty(_, _, v) => v
-    case ListProperty(_, _, v) => if (v.isEmpty) None else Some(v)
-    case ObjectProperty(_, _, v) => if (v.isEmpty) None else Some(v)
+    case ListProperty(_, _, v) => v.headOption
+    case ObjectProperty(_, _, v) => None
+  }
+
+  def getPropertyAsSeq(name: String): Seq[Value[_]] = {
+    getProperty(name).flatMap {
+      case ValueProperty(_, _, v) => Some(v.toSeq)
+      case ListProperty(_, _, v) => Some(v)
+      case ObjectProperty(_, _, v) => None
+    }.getOrElse(Seq.empty)
+  }
+
+  def getPropertyAsMap(name: String): Map[String, Value[_]] = {
+    getProperty(name).flatMap {
+      case ValueProperty(_, _, v) => None
+      case ListProperty(_, _, v) => None
+      case ObjectProperty(_, _, v) => Some(v)
+    }.getOrElse(Map.empty)
   }
 
   def addProperty(property: Property) = {
