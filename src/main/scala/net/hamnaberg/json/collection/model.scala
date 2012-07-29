@@ -24,7 +24,13 @@ case class JsonCollection(version: Version = Version.ONE,
   def withError(error: ErrorMessage) = JsonCollection(version, href, links, Nil, Nil, None, Some(error))
 
   def isError = error.isDefined
-  
+
+  def map[B](f: (Item) => B): List[B] = items.map(f)
+
+  def filter(f: (Item) => Boolean): List[Item] = items.filter(f)
+
+  def find(f: (Item) => Boolean): Option[Item] = items.find(f)
+
   def isItemCollection = {
     items match {
       case List(i) => i.href == href
@@ -33,8 +39,6 @@ case class JsonCollection(version: Version = Version.ONE,
   }
 
   def findLinkByRel(rel: String) = links.find(_.rel == rel)
-
-  def findItemByRel(rel: String) = items.find(_.rel == Some(rel))
 
   def findQueryByRel(rel: String) = queries.find(_.rel == rel)
 
@@ -231,7 +235,7 @@ case class Link(href: URI, rel: String, prompt: Option[String] = None, render: O
   }
 }
 
-case class Item(href: URI, rel: Option[String], data: List[Property], links: List[Link]) extends ToJson with PropertyContainer {
+case class Item(href: URI, data: List[Property], links: List[Link]) extends ToJson with PropertyContainer {
 
   def findLinkByRel(rel: String) = links.find(_.rel == rel)
 
@@ -247,7 +251,6 @@ case class Item(href: URI, rel: Option[String], data: List[Property], links: Lis
       if (list.isEmpty) JNothing else JArray(list)
     }
     ("href" -> href.toString) ~
-    ("rel" -> rel) ~
     ("data" -> data) ~
     ("links" -> links)
   }
@@ -257,13 +260,6 @@ case class Item(href: URI, rel: Option[String], data: List[Property], links: Lis
   protected def copyData(data: List[Property]) = copy(data = data)
 
   def toTemplate = Template(data)
-}
-
-object Item {
-  def apply(href: URI, data: List[Property], links: List[Link]): Item = {
-    apply(href, None, data, links)
-  }
-  
 }
 
 case class Query(href: URI, rel: String, prompt: Option[String], data: List[Property]) extends ToJson with PropertyContainer {

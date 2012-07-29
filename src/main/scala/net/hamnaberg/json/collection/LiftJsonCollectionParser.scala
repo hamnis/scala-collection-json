@@ -71,10 +71,9 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
       val map = fieldAsMap(fields)
       for {
         AsURI(href) <- map.get("href")
-        rel = map.get("rel").map(_.values.toString)
         AsList(data) <- map.get("data").orElse(EMPTY_ARRAY)
         AsList(links) <- map.get("links").orElse(EMPTY_ARRAY)
-      } yield Item(href, rel, toData(data), toLinks(links))
+      } yield Item(href, toData(data), toLinks(links))
     }.toList
   }
 
