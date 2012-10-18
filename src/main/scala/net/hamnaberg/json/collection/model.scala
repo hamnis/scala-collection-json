@@ -2,8 +2,8 @@ package net.hamnaberg
 package json.collection
 
 import java.net.URI
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.JsonDSL._
+import net.hamnaberg.json.lift.JsonAST._
+import net.hamnaberg.json.lift.JsonDSL._
 
 case class JsonCollection(version: Version = Version.ONE,
                           href: URI,

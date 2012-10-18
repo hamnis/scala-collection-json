@@ -2,9 +2,9 @@ package net.hamnaberg
 package json.collection
 
 import java.io.Reader
-import net.liftweb.json.JsonAST._
 import java.net.URI
-import net.liftweb.json.{JsonAST, JsonParser}
+import net.hamnaberg.json.lift.JsonParser
+import net.hamnaberg.json.lift.JsonAST._
 
 /**
  * Created by IntelliJ IDEA.
@@ -46,7 +46,7 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
     }
   }
 
-  private def fieldAsMap(fields: List[JField]): Map[String, JsonAST.JValue] = {
+  private def fieldAsMap(fields: List[JField]): Map[String, JValue] = {
     fields.foldLeft(Map[String, JValue]())((coll, b) => coll + (b.name -> b.value))
   }
 

@@ -4,7 +4,6 @@ package json.collection
 import org.specs2.mutable.Specification
 import java.io.InputStreamReader
 import java.net.URI
-import net.liftweb.json.JsonAST.JString
 import json.collection.Value.StringValue
 
 class JsonParserSpec extends Specification {
@@ -149,7 +148,7 @@ class JsonParserSpec extends Specification {
         Link(URI.create("http://example.org/friends/?template"), "template")
       )
       val expected = JsonCollection(item.href, links, item)
-      import net.liftweb.json._
+      import net.hamnaberg.json.lift._
       val rendered = compact(render(expected.toJson))
       val parsed = parser.parseCollection(rendered)
       

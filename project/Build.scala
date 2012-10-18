@@ -5,8 +5,6 @@ import aether._
 
 object Build extends sbt.Build {
 
-  val liftJSONversion = "2.4"
-
   lazy val buildSettings = Defaults.defaultSettings ++ Aether.aetherPublishSettings ++ Seq(
     organization := "net.hamnaberg.rest",
     scalaVersion := "2.9.1",
@@ -25,9 +23,8 @@ object Build extends sbt.Build {
       description := "Collection+JSON",
       name := "scala-json-collection", 
       libraryDependencies := Seq(
-        "net.liftweb" %% "lift-json" % liftJSONversion,
-        "org.specs2" %% "specs2" % "1.11" % "test"        
-      ), 
+        "org.specs2" %% "specs2" % "1.11" % "test"
+      ),
 	    manifestSetting
 	    ) ++ mavenCentralFrouFrou
 	  )
