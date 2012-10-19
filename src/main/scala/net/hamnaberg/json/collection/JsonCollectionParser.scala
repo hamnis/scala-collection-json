@@ -15,16 +15,16 @@ import io.Codec
  */
 
 trait JsonCollectionParser {
-  def parseCollection(reader: Reader): Either[Exception, JsonCollection]
+  def parseCollection(reader: Reader): Either[Throwable, JsonCollection]
 
-  def parseCollection(inputStream: InputStream):Either[Exception, JsonCollection] = parseCollection(new BufferedReader(new InputStreamReader(inputStream, Charset.forName("UTF-8"))))
+  def parseCollection(inputStream: InputStream):Either[Throwable, JsonCollection] = parseCollection(new BufferedReader(new InputStreamReader(inputStream, Codec.UTF8)))
 
-  def parseCollection(string: String):Either[Exception, JsonCollection] = parseCollection(new StringReader(string))
+  def parseCollection(string: String):Either[Throwable, JsonCollection] = parseCollection(new StringReader(string))
 
-  def parseTemplate(source: Reader) : Either[Exception, Template]
+  def parseTemplate(source: Reader) : Either[Throwable, Template]
 
-  def parseTemplate(inputStream: InputStream)(implicit codec:Codec = Codec(Codec.UTF8)):Either[Exception, Template] = parseTemplate(new BufferedReader(new InputStreamReader(inputStream, codec.charSet)))
+  def parseTemplate(inputStream: InputStream):Either[Throwable, Template] = parseTemplate(new BufferedReader(new InputStreamReader(inputStream, Codec.UTF8)))
 
-  def parseTemplate(string: String):Either[Exception, Template] = parseTemplate(new StringReader(string))
+  def parseTemplate(string: String):Either[Throwable, Template] = parseTemplate(new StringReader(string))
 
 }

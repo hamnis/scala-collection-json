@@ -295,6 +295,26 @@ object JsonAST {
     type Values = Map[String, Any]
     def values = Map() ++ obj.map(_.values : (String, Any))
 
+    def get(name: String): Option[JValue] = obj.find(_.name == name).map(_.value)
+    def getAs[A](name: String): Option[A] = get(name).map(_.values.asInstanceOf[A])
+    def getAsList(name: String): List[JValue] = get(name).map{
+      case JArray(list) => list
+      case JNothing => Nil
+      case x => println("AAAAAAA\n" + x); throw new IllegalArgumentException("Not a list")
+    }.getOrElse(Nil)
+
+    def getAsObject(name: String): Option[JObject] = get(name).flatMap{
+      case j@JObject(_) => Some(j)
+      case JNothing => None
+      case _ => throw new IllegalArgumentException("Not an object")
+    }
+
+    def getAsString(name: String): Option[String] = get(name).map(_.values.toString)
+
+    def has(name: String): Boolean = get(name).isDefined
+
+    def filtered: JObject = JObject(trimObj(obj))
+
     override def equals(that: Any): Boolean = that match {
       case o: JObject => Set(obj.toArray: _*) == Set(o.obj.toArray: _*)
       case _ => false
@@ -364,7 +384,6 @@ object JsonAST {
  */
 object Implicits extends Implicits
 trait Implicits {
-  import JsonAST._
   implicit def int2jvalue(x: Int) = JInt(x)
   implicit def long2jvalue(x: Long) = JInt(x)
   implicit def bigint2jvalue(x: BigInt) = JInt(x)

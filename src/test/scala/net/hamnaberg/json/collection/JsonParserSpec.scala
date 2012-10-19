@@ -150,12 +150,11 @@ class JsonParserSpec extends Specification {
       val expected = JsonCollection(item.href, links, item)
       import net.hamnaberg.json.lift._
       val rendered = compact(render(expected.toJson))
+      println(rendered)
       val parsed = parser.parseCollection(rendered)
       
-      parsed match {
-        case Left(ex) => throw ex
-        case Right(v) => v must beEqualTo(expected)
-      }
+      parsed must beRight[JsonCollection]
+      parsed must beEqualTo(Right(expected))
     }
   }
 }
