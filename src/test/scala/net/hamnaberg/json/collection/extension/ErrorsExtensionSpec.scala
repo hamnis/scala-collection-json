@@ -10,7 +10,7 @@ class ErrorsExtensionSpec extends Specification {
   "Errors extension " should {
     "be deserialized" in {
       val coll = LiftJsonCollectionParser.parseCollection(getClass.getResourceAsStream("/errors.json")).right
-      val errors = coll.map(_.extract(ErrorsExtension ++ )).toOption.getOrElse(Nil)
+      val errors = coll.map(_.extract(ErrorsExtension)).toOption.getOrElse(Nil)
       errors must be_!=(Nil)
     }
   }
