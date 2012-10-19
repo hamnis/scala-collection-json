@@ -1,0 +1,18 @@
+{ "collection":{
+    "version":"1.0",
+    "href":"http://example.org/friends/",
+
+    "errors":[
+        {
+            "title":"Server Error",
+            "code":"X1C2",
+            "message":"The server have encountered an error, please wait and try again."
+        },
+        {
+            "title":"Server Error 2 ",
+            "code":"X1C3",
+            "message":"The server have encountered an error, please wait and try Later!!!!"
+        }
+    ]
+}
+}
