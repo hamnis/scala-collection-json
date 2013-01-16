@@ -2,33 +2,34 @@ package net.hamnaberg
 package json.collection
 
 import java.net.URI
-import json.lift.JsonAST._
-import json.lift.JsonDSL._
+import org.json4s._
+import org.json4s.JsonDSL._
+import Json4sHelpers._
 
 case class JsonCollection private[collection](underlying: JObject) extends Extensible[JsonCollection] with ToJson {
 
-  val version: Version = underlying.getAsString("version").map(Version(_)).getOrElse(Version.ONE)
-  val href: URI = underlying.getAsString("href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Not a valid collection+json object"))
-  val links: List[Link] = underlying.getAsList("links").map(o => Link(o.asInstanceOf[JObject]))
-  val items: List[Item] = underlying.getAsList("items").map(o => Item(o.asInstanceOf[JObject]))
-  val queries: List[Query] = underlying.getAsList("queries").map(o => Query(o.asInstanceOf[JObject]))
-  val template: Option[Template] = underlying.getAsObject("template").map(Template(_))
-  val error: Option[ErrorMessage] = underlying.getAsObject("error").map(ErrorMessage(_))
+  val version: Version = getAsString(underlying, "version").map(Version(_)).getOrElse(Version.ONE)
+  val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Not a valid collection+json object"))
+  val links: List[Link] = getAsObjectList(underlying, "links").map(Link(_))
+  val items: List[Item] = getAsObjectList(underlying, "items").map(Item(_))
+  val queries: List[Query] = getAsObjectList(underlying, "queries").map(Query(_))
+  val template: Option[Template] = getAsObject(underlying, "template").map(Template(_))
+  val error: Option[Error] = getAsObject(underlying, "error").map(Error(_))
 
-  /*def addItem(item: Item) = copy(error = None, items = item :: items)
+  //TODO: Expensive, do rather a patch of the JArray itself.
+  def addItem(item: Item) = copy(replace(underlying, "items" :: Nil, JArray((items ++ List(item)).map(_.underlying))))
 
-  def addLink(link: Link) = copy(error = None, links = link :: links)
+  //TODO: Expensive, do rather a patch of the JArray itself.
+  def addLink(link: Link) = copy(replace(underlying, "links" :: Nil, JArray((links ++ List(link)).map(_.underlying))))
 
-  def addQuery(query: Query) = copy(error = None, queries = query :: queries)
+  //TODO: Expensive, do rather a patch of the JArray itself.
+  def addQuery(query: Query) = copy(replace(underlying, "queries" :: Nil, JArray((queries ++ List(query)).map(_.underlying))))
 
-  def withTemplate(template: Template) = copy(error = None, template = Some(template))
-
-  */
-
+  def withTemplate(template: Template) = copy(replace(underlying, "template" :: Nil, template.underlying))
 
   def copy(obj: JObject) = JsonCollection(obj)
 
-  def withError(error: ErrorMessage) = JsonCollection(version, href, links, Nil, Nil, None, Some(error))
+  def withError(error: Error) = copy(replace(underlying, "error" :: Nil, error.underlying))
 
   def isError = error.isDefined
 
@@ -60,7 +61,7 @@ trait ToJson {
 
 object JsonCollection {
 
-  def apply(version: Version, href: URI, links: List[Link], items: List[Item], queries: List[Query], template: Option[Template] = None, error: Option[ErrorMessage] = None): JsonCollection = {
+  def apply(version: Version, href: URI, links: List[Link], items: List[Item], queries: List[Query], template: Option[Template] = None, error: Option[Error] = None): JsonCollection = {
     val it = {
       val i = items.map(_.underlying)
       if (i.isEmpty) JNothing else JArray(i)
@@ -74,27 +75,27 @@ object JsonCollection {
       if (q.isEmpty) JNothing else JArray(q)
     }
     if (error.isDefined) {
-      apply((
+      apply(filtered(
         ("version" -> version.name) ~
           ("href" -> href.toString) ~
-          ("error" -> error.map(_.underlying))).filtered
+          ("error" -> error.map(_.underlying)))
       )
     }
     else {
       apply(
-        (("version" -> version.name) ~
+        filtered(("version" -> version.name) ~
           ("href" -> href.toString) ~
           ("links" -> li) ~
           ("items" -> it) ~
           ("queries" -> qu) ~
-          ("template" -> template.map(_.underlying))).filtered
+          ("template" -> template.map(_.underlying)))
       )
     }
   }
 
   def apply(href: URI): JsonCollection = JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, None)
 
-  def apply(href: URI, error: ErrorMessage): JsonCollection =
+  def apply(href: URI, error: Error): JsonCollection =
     JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, Some(error))
 
   def apply(href: URI,
@@ -181,17 +182,20 @@ object Value {
 
 sealed trait Property extends Extensible[Property] {
   type A
-  def name: String = underlying.getAsString("name").getOrElse(throw new IllegalStateException("Not a valid property"))
-  def prompt: Option[String] = underlying.getAsString("prompt")
+  lazy val name: String = getAsString(underlying, "name").getOrElse(throw new IllegalStateException("Not a valid property"))
+  lazy val prompt: Option[String] = getAsString(underlying, "prompt")
   def value: A
 }
 
 object Property {
-  def apply(obj: JObject): Property = obj match {
-    case o if (o.has("value")) => ValueProperty(o)
-    case o if (o.has("array")) => ListProperty(o)
-    case o if (o.has("object")) => ObjectProperty(o)
-    case _ => throw new IllegalArgumentException("Uknown property type")
+  def apply(obj: JObject): Property = {
+    val map = obj.values
+    obj match {
+      case o if (map.contains("value")) => ValueProperty(o)
+      case o if (map.contains("array")) => ListProperty(o)
+      case o if (map.contains("object")) => ObjectProperty(o)
+      case _ => throw new IllegalArgumentException("Uknown property type")
+    }
   }
 }
 
@@ -200,15 +204,15 @@ case class ValueProperty private[collection](underlying: JObject) extends Proper
 
   def copy(obj: JObject) = ValueProperty(obj)
 
-  val value = underlying.get("value").flatMap(Value(_))
+  val value = (underlying \ "value").toOption.flatMap(Value(_))
 }
 
 object ValueProperty {
   def apply(name: String, prompt: Option[String] = None, value: Option[Value[_]] = None): ValueProperty = {
     apply(
-      (("name" -> name) ~
+      filtered(("name" -> name) ~
         ("prompt" -> prompt) ~
-        ("value" -> value.map(_.toJson))).filtered
+        ("value" -> value.map(_.toJson)))
     )
   }
 }
@@ -218,15 +222,15 @@ case class ListProperty private[collection](underlying: JObject) extends Propert
 
   def copy(obj: JObject) = ListProperty(obj)
 
-  lazy val value = underlying.getAsList("array").flatMap(Value(_))
+  lazy val value = getAsValueList(underlying, "array").flatMap(Value(_))
 }
 
 object ListProperty {
   def apply(name: String, prompt: Option[String] = None, value: Seq[Value[_]] = Nil): ListProperty = {
     apply(
-      (("name" -> name) ~
+      filtered(("name" -> name) ~
         ("prompt" -> prompt) ~
-        ("array" -> value.map(_.toJson))).filtered
+        ("array" -> value.map(_.toJson)))
     )
   }
 }
@@ -236,8 +240,8 @@ case class ObjectProperty private[collection](underlying: JObject) extends Prope
 
   def copy(obj: JObject) = ObjectProperty(obj)
 
-  lazy val value = underlying.getAsObject("object").map(obj => {
-    val values : Seq[(String, Option[Value[_]])] = obj.obj.map(f => f.name -> Value(f.value))
+  lazy val value = getAsObject(underlying, "object").map(obj => {
+    val values : Seq[(String, Option[Value[_]])] = obj.obj.map{case (name,value) => name -> Value(value)}
     values.collect{case (a, Some(b)) => a -> b}.toMap[String, Value[_]]
   }).getOrElse(Map.empty)
 }
@@ -245,27 +249,27 @@ case class ObjectProperty private[collection](underlying: JObject) extends Prope
 object ObjectProperty {
   def apply(name: String, prompt: Option[String] = None, value: Map[String, Value[_]] = Map.empty): ObjectProperty = {
     apply(
-      (("name" -> name) ~
+      filtered(("name" -> name) ~
         ("prompt" -> prompt) ~
-        ("object" -> JObject(value.map{case (x,y) => JField(x, y.toJson)}.toList))).filtered
+        ("object" -> JObject(value.map{case (x,y) => JField(x, y.toJson)}.toList)))
     )
   }
 }
 
-case class ErrorMessage(underlying: JObject) extends Extensible[ErrorMessage] with ToJson {
+case class Error(underlying: JObject) extends Extensible[Error] with ToJson {
 
-  def copy(obj: JObject) = ErrorMessage(obj)
+  def copy(obj: JObject) = Error(obj)
 
-  def title: String = underlying.getAsString("title").getOrElse(throw new IllegalStateException("Expected title, was nothing"))
-  def code: Option[String] = underlying.getAsString("code")
-  def message: Option[String] = underlying.getAsString("message")
+  lazy val title: String = getAsString(underlying, "title").getOrElse(throw new IllegalStateException("Expected title, was nothing"))
+  lazy val code: Option[String] = getAsString(underlying, "code")
+  lazy val message: Option[String] = getAsString(underlying, "message")
 
   def toJson = underlying
 }
 
-object ErrorMessage {
-  def apply(title: String, code: Option[String], message: Option[String]): ErrorMessage = {
-    ErrorMessage((("title", title) ~ ("code" -> code) ~ ("message", message)).filtered)
+object Error {
+  def apply(title: String, code: Option[String], message: Option[String]): Error = {
+    Error(filtered(("title", title) ~ ("code" -> code) ~ ("message", message)))
   }
 }
 
@@ -288,31 +292,30 @@ case class Link private[collection](underlying: JObject) extends Extensible[Link
 
   def copy(obj: JObject) = Link(underlying)
 
-  lazy val href: URI = underlying.getAsString("href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Expected href, was nothing"))
-  lazy val rel: String = underlying.getAsString("rel").getOrElse(throw new IllegalStateException("Expected rel, was nothing"))
-  lazy val prompt: Option[String] = underlying.getAsString("prompt")
-  lazy val render: Option[Render] = underlying.getAsString("render").map(Render(_))
+  lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Expected href, was nothing"))
+  lazy val rel: String = getAsString(underlying, "rel").getOrElse(throw new IllegalStateException("Expected rel, was nothing"))
+  lazy val prompt: Option[String] = getAsString(underlying, "prompt")
+  lazy val render: Option[Render] = getAsString(underlying, "render").map(Render(_))
 }
 
 object Link {
   def apply(href: URI, rel: String, prompt: Option[String] = None, render: Option[Render] = None): Link = {
     apply(
-      (("href" -> href.toString) ~
+      filtered(("href" -> href.toString) ~
         ("rel" -> rel) ~
         ("prompt", prompt) ~
-        ("render", render.map(_.name))).filtered
+        ("render", render.map(_.name)))
     )
   }
 }
 
 case class Item(underlying: JObject) extends Extensible[Item] with PropertyContainer[Item] {
 
-  lazy val href: URI = underlying.getAsString("href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Expected href, was nothing"))
+  lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Expected href, was nothing"))
 
-  lazy val data: List[Property] = underlying.getAsList("data").map(o => Property(o.asInstanceOf[JObject]))
+  lazy val data: List[Property] = getAsObjectList(underlying, "data").map(Property(_))
 
-  lazy val links: List[Link] = underlying.getAsList("links").map(o => Link(o.asInstanceOf[JObject]))
-
+  lazy val links: List[Link] = getAsObjectList(underlying, "links").map(Link(_))
 
   def copy(obj: JObject) = Item(underlying)
 
@@ -320,7 +323,7 @@ case class Item(underlying: JObject) extends Extensible[Item] with PropertyConta
 
   def images = links.filter(_.render == Some(Render.IMAGE))
 
-  protected def copyData(data: List[Property]) = sys.error("implement me")
+  protected def copyData(data: List[Property]) = copy(replace(underlying, "data" :: Nil, JArray(data.map(_.underlying))))
 
   def toTemplate = Template(data)
 }
@@ -336,9 +339,9 @@ object Item {
       if (list.isEmpty) JNothing else JArray(list)
     }
     apply(
-      (("href" -> href.toString) ~
+      filtered(("href" -> href.toString) ~
         ("data" -> dt) ~
-        ("links" -> li)).filtered
+        ("links" -> li))
     )
   }
 }
@@ -347,16 +350,16 @@ case class Query(underlying: JObject) extends Extensible[Query] with PropertyCon
 
   type T = Query
 
-  lazy val href: URI = underlying.getAsString("href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Expected href, was nothing"))
+  lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Expected href, was nothing"))
 
-  lazy val rel: String = underlying.getAsString("rel").getOrElse(throw new IllegalStateException("Expected rel, was nothing"))
+  lazy val rel: String = getAsString(underlying, "rel").getOrElse(throw new IllegalStateException("Expected rel, was nothing"))
 
-  lazy val data: List[Property] = underlying.getAsList("data").map(o => Property(o.asInstanceOf[JObject]))
+  lazy val data: List[Property] = getAsObjectList(underlying, "data").map(Property(_))
 
 
   def copy(obj: JObject) = Query(underlying)
 
-  protected def copyData(data: List[Property]) = sys.error("implement me")
+  protected def copyData(data: List[Property]) = copy(replace(underlying, "data" :: Nil, JArray(data.map(_.underlying))))
 
   def toURI: URI = {
     val query = data.map(p => p match {
@@ -372,28 +375,26 @@ case class Query(underlying: JObject) extends Extensible[Query] with PropertyCon
 object Query {
   def apply(href: URI, rel: String, prompt: Option[String], data: List[Property]) : Query = {
    apply(
-     (("href" -> href.toString) ~
+     filtered(("href" -> href.toString) ~
       ("rel" -> rel) ~
       ("prompt" -> prompt) ~
-      ("data" -> data.map(_.underlying))).filtered
+      ("data" -> data.map(_.underlying)))
     )
   }
 }
 
 case class Template(underlying: JObject) extends Extensible[Template] with PropertyContainer[Template] {
 
-
   def copy(obj: JObject) = Template(underlying)
 
-  val data: List[Property] = underlying.getAsList("data").map(o => Property(o.asInstanceOf[JObject]))
+  lazy val data: List[Property] = getAsObjectList(underlying, "data").map(Property(_))
 
-
-  protected def copyData(data: List[Property]) = sys.error("implement me")
+  protected def copyData(data: List[Property]) = copy(replace(underlying, "data" :: Nil, JArray(data.map(_.underlying))))
 }
 
 object Template {
   def apply(data: List[Property] = Nil): Template = apply(
-    (("data" -> data.map(_.underlying))).filtered
+    filtered(("data" -> data.map(_.underlying)))
   )
 }
 

@@ -1,7 +1,7 @@
 package net.hamnaberg.json.collection
 
 import extension.Extension
-import net.hamnaberg.json.lift.JsonAST.JObject
+import org.json4s.JObject
 
 trait Extensible[T <: Extensible[T]] { self:T =>
 

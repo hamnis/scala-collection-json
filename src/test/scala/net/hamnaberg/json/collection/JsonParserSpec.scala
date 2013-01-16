@@ -7,7 +7,7 @@ import java.net.URI
 import json.collection.Value.StringValue
 
 class JsonParserSpec extends Specification {
-  val parser = LiftJsonCollectionParser
+  val parser = NativeJsonCollectionParser
   val href = URI.create("http://example.org/friends/")
   "parsing json " should {
     "minimal" in {
@@ -90,7 +90,7 @@ class JsonParserSpec extends Specification {
     }
     "error" in {
       val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/error.json")))
-      val error = Some(ErrorMessage("Server Error", Some("X1C2"), Some("The server have encountered an error, please wait and try again.")))
+      val error = Some(Error("Server Error", Some("X1C2"), Some("The server have encountered an error, please wait and try again.")))
       result match {
         case Left(ex) => throw ex
         case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, error))
@@ -123,7 +123,7 @@ class JsonParserSpec extends Specification {
 
     "error" in {
       val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/error.json")))
-      val error = Some(ErrorMessage("Server Error", Some("X1C2"), Some("The server have encountered an error, please wait and try again.")))
+      val error = Some(Error("Server Error", Some("X1C2"), Some("The server have encountered an error, please wait and try again.")))
       result match {
         case Left(ex) => throw ex
         case Right(v) => v must beEqualTo(JsonCollection(Version.ONE, href, Nil, Nil, Nil, None, error))
@@ -148,7 +148,7 @@ class JsonParserSpec extends Specification {
         Link(URI.create("http://example.org/friends/?template"), "template")
       )
       val expected = JsonCollection(item.href, links, item)
-      import net.hamnaberg.json.lift._
+      import org.json4s.native.JsonMethods._
       val rendered = compact(render(expected.toJson))
       val parsed = parser.parseCollection(rendered)
       

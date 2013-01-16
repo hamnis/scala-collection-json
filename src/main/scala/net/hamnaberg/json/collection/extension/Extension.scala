@@ -1,7 +1,7 @@
 package net.hamnaberg.json.collection.extension
 
 import net.hamnaberg.json.collection.Extensible
-import net.hamnaberg.json.lift.JsonAST.JField
+import org.json4s.JField
 
 trait Extension[Like, A] { self =>
   def apply(like: Like): A

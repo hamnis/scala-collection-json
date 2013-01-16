@@ -1,9 +1,8 @@
 package net.hamnaberg
 package json.collection
 
-import java.nio.charset.Charset
 import java.io._
-import io.Codec
+import java.nio.charset.Charset
 
 
 /**
@@ -17,13 +16,13 @@ import io.Codec
 trait JsonCollectionParser {
   def parseCollection(reader: Reader): Either[Throwable, JsonCollection]
 
-  def parseCollection(inputStream: InputStream):Either[Throwable, JsonCollection] = parseCollection(new BufferedReader(new InputStreamReader(inputStream, Codec.UTF8)))
+  def parseCollection(inputStream: InputStream):Either[Throwable, JsonCollection] = parseCollection(new BufferedReader(new InputStreamReader(inputStream, Charset.forName("UTF-8"))))
 
   def parseCollection(string: String):Either[Throwable, JsonCollection] = parseCollection(new StringReader(string))
 
   def parseTemplate(source: Reader) : Either[Throwable, Template]
 
-  def parseTemplate(inputStream: InputStream):Either[Throwable, Template] = parseTemplate(new BufferedReader(new InputStreamReader(inputStream, Codec.UTF8)))
+  def parseTemplate(inputStream: InputStream):Either[Throwable, Template] = parseTemplate(new BufferedReader(new InputStreamReader(inputStream, Charset.forName("UTF-8"))))
 
   def parseTemplate(string: String):Either[Throwable, Template] = parseTemplate(new StringReader(string))
 

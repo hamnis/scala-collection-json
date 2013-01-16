@@ -7,8 +7,8 @@ object Build extends sbt.Build {
 
   lazy val buildSettings = Defaults.defaultSettings ++ Aether.aetherPublishSettings ++ Seq(
     organization := "net.hamnaberg.rest",
-    scalaVersion := "2.9.1",
-    crossScalaVersions := Seq("2.9.1", "2.9.2"),
+    scalaVersion := "2.10.0",
+    crossScalaVersions := Seq("2.9.1", "2.9.2", "2.10.0"),
     scalacOptions := Seq("-deprecation"),
     publishTo <<= (version) apply {
       (v: String) => if (v.trim().endsWith("SNAPSHOT")) Some(Resolvers.sonatypeNexusSnapshots) else Some(Resolvers.sonatypeNexusStaging)
@@ -23,9 +23,11 @@ object Build extends sbt.Build {
     settings = buildSettings ++ Seq(
       description := "Collection+JSON",
       name := "scala-json-collection", 
-      libraryDependencies ++= Seq(
-        "org.specs2" %% "specs2" % "1.11" % "test"
-      ),
+      libraryDependencies += "org.json4s" %% "json4s-native" % "3.1.0",
+      libraryDependencies <+= scalaVersion { sv =>
+          val ver = if (sv.startsWith("2.10")) "1.13" else "1.12.3"
+          "org.specs2" %% "specs2" % ver % "test"
+      },
 	    manifestSetting
 	    ) ++ mavenCentralFrouFrou
 	  )
