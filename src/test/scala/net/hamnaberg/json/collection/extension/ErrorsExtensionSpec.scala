@@ -10,8 +10,8 @@ class ErrorsExtensionSpec extends Specification {
   "Errors extension " should {
     "be deserialized" in {
       val coll = NativeJsonCollectionParser.parseCollection(getClass.getResourceAsStream("/errors.json")).right
-      val errors = coll.map(_.extract(ErrorsExtension)).toOption.getOrElse(Nil)
-      errors must be_!=(Nil)
+      val errors: List[Error] = coll.map(_.extract(ErrorsExtension)).right.getOrElse(Nil)
+      errors must not beEmpty
     }
   }
 }
