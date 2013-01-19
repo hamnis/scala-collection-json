@@ -37,7 +37,7 @@ object LiftJsonCollectionParser extends JsonCollectionParser {
     try {
       val parsed = JsonParser.parse(reader, true)
       parsed match {
-        case JObject(List(JField("collection", x: JObject))) => toTemplate(x).map(Right(_)).getOrElse(Left(new Exception("Failed to parse Template...")))
+        case JObject(List(JField("template", x: JObject))) => toTemplate(x).map(Right(_)).getOrElse(Left(new Exception("Failed to parse Template...")))
         case _ => throw new IllegalArgumentException("Unexpected json here. was\n %s".format(parsed))
       }
     }
