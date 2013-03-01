@@ -17,19 +17,19 @@ case class JsonCollection private[collection](underlying: JObject) extends Exten
   val error: Option[Error] = getAsObject(underlying, "error").map(Error(_))
 
   //TODO: Expensive, do rather a patch of the JArray itself.
-  def addItem(item: Item) = copy(replace(underlying, "items" :: Nil, JArray((items ++ List(item)).map(_.underlying))))
+  def addItem(item: Item) = copy(replace(underlying, "items", JArray((items ++ List(item)).map(_.underlying))))
 
   //TODO: Expensive, do rather a patch of the JArray itself.
-  def addLink(link: Link) = copy(replace(underlying, "links" :: Nil, JArray((links ++ List(link)).map(_.underlying))))
+  def addLink(link: Link) = copy(replace(underlying, "links", JArray((links ++ List(link)).map(_.underlying))))
 
   //TODO: Expensive, do rather a patch of the JArray itself.
-  def addQuery(query: Query) = copy(replace(underlying, "queries" :: Nil, JArray((queries ++ List(query)).map(_.underlying))))
+  def addQuery(query: Query) = copy(replace(underlying, "queries", JArray((queries ++ List(query)).map(_.underlying))))
 
-  def withTemplate(template: Template) = copy(replace(underlying, "template" :: Nil, template.underlying))
+  def withTemplate(template: Template) = copy(replace(underlying, "template", template.underlying))
 
   def copy(obj: JObject) = JsonCollection(obj)
 
-  def withError(error: Error) = copy(replace(underlying, "error" :: Nil, error.underlying))
+  def withError(error: Error) = copy(replace(underlying, "error", error.underlying))
 
   def isError = error.isDefined
 
@@ -323,7 +323,7 @@ case class Item(underlying: JObject) extends Extensible[Item] with PropertyConta
 
   def images = links.filter(_.render == Some(Render.IMAGE))
 
-  protected def copyData(data: List[Property]) = copy(replace(underlying, "data" :: Nil, JArray(data.map(_.underlying))))
+  protected def copyData(data: List[Property]) = copy(replace(underlying, "data", JArray(data.map(_.underlying))))
 
   def toTemplate = Template(data)
 }
@@ -359,7 +359,7 @@ case class Query(underlying: JObject) extends Extensible[Query] with PropertyCon
 
   def copy(obj: JObject) = Query(underlying)
 
-  protected def copyData(data: List[Property]) = copy(replace(underlying, "data" :: Nil, JArray(data.map(_.underlying))))
+  protected def copyData(data: List[Property]) = copy(replace(underlying, "data", JArray(data.map(_.underlying))))
 
   def toURI: URI = {
     val query = data.map(p => p match {
@@ -389,7 +389,7 @@ case class Template(underlying: JObject) extends Extensible[Template] with Prope
 
   lazy val data: List[Property] = getAsObjectList(underlying, "data").map(Property(_))
 
-  protected def copyData(data: List[Property]) = copy(replace(underlying, "data" :: Nil, JArray(data.map(_.underlying))))
+  protected def copyData(data: List[Property]) = copy(replace(underlying, "data", JArray(data.map(_.underlying))))
 }
 
 object Template {

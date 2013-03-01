@@ -1,6 +1,6 @@
 package net.hamnaberg.json.collection
 
-import org.json4s.JsonAST._
+import org.json4s._
 
 object Json4sHelpers {
   def getAsObjectList(obj: JObject, name: String): List[JObject] = {
@@ -33,8 +33,9 @@ object Json4sHelpers {
     }
   }
 
-  def replace(obj: JObject, path: List[String], value: JValue): JObject = {
-    obj.replace(path, value).asInstanceOf[JObject]
+  def replace(obj: JObject, name: String, value: JValue): JObject = {
+    val map = obj.obj.toMap - name
+    JObject(map.updated(name, value).toList)
   }
 
   def filtered(obj: JObject): JObject = {
