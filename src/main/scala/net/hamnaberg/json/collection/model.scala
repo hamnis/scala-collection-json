@@ -9,7 +9,7 @@ import Json4sHelpers._
 case class JsonCollection private[collection](underlying: JObject) extends Extensible[JsonCollection] with ToJson {
 
   val version: Version = getAsString(underlying, "version").map(Version(_)).getOrElse(Version.ONE)
-  val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Not a valid collection+json object"))
+  val href: Option[URI] = getAsString(underlying, "href").map(URI.create(_))
   val links: List[Link] = getAsObjectList(underlying, "links").map(Link(_))
   val items: List[Item] = getAsObjectList(underlying, "items").map(Item(_))
   val queries: List[Query] = getAsObjectList(underlying, "queries").map(Query(_))
@@ -177,14 +177,19 @@ object Value {
     case NullValue => JNull
     case _ => throw new IllegalArgumentException("Unknown value type")
   }
-
 }
 
 sealed trait Property extends Extensible[Property] {
-  type A
   lazy val name: String = getAsString(underlying, "name").getOrElse(throw new IllegalStateException("Not a valid property"))
   lazy val prompt: Option[String] = getAsString(underlying, "prompt")
-  def value: A
+
+  def isValue: Boolean = false
+  def isArray: Boolean = false
+  def isObject: Boolean = false
+
+  def asValue: Option[Value[_]] = None
+  def asArray: List[Value[_]] = Nil
+  def asObject: Map[String, Value[_]] = Map.empty
 }
 
 object Property {
@@ -200,11 +205,11 @@ object Property {
 }
 
 case class ValueProperty private[collection](underlying: JObject) extends Property {
-  type A = Option[Value[_]]
-
   def copy(obj: JObject) = ValueProperty(obj)
 
-  val value = (underlying \ "value").toOption.flatMap(Value(_))
+  override val isValue = true
+
+  override val asValue = (underlying \ "value").toOption.flatMap(Value(_))
 }
 
 object ValueProperty {
@@ -218,11 +223,11 @@ object ValueProperty {
 }
 
 case class ListProperty private[collection](underlying: JObject) extends Property {
-  type A = Seq[Value[_]]
-
   def copy(obj: JObject) = ListProperty(obj)
 
-  lazy val value = getAsValueList(underlying, "array").flatMap(Value(_))
+  override val isArray = true
+
+  override val asArray = getAsValueList(underlying, "array").flatMap(Value(_))
 }
 
 object ListProperty {
@@ -236,12 +241,12 @@ object ListProperty {
 }
 
 case class ObjectProperty private[collection](underlying: JObject) extends Property {
-  type A = Map[String, Value[_]]
-
   def copy(obj: JObject) = ObjectProperty(obj)
 
-  lazy val value = getAsObject(underlying, "object").map(obj => {
-    val values : Seq[(String, Option[Value[_]])] = obj.obj.map{case (name,value) => name -> Value(value)}
+  override val isObject = true
+
+  override val asObject = getAsObject(underlying, "object").map(obj => {
+    val values : Seq[(String, Option[Value[_]])] = obj.obj.map{case (n,v) => n -> Value(v)}
     values.collect{case (a, Some(b)) => a -> b}.toMap[String, Value[_]]
   }).getOrElse(Map.empty)
 }
@@ -294,15 +299,17 @@ case class Link private[collection](underlying: JObject) extends Extensible[Link
 
   lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new IllegalStateException("Expected href, was nothing"))
   lazy val rel: String = getAsString(underlying, "rel").getOrElse(throw new IllegalStateException("Expected rel, was nothing"))
+  lazy val name: Option[String] = getAsString(underlying, "name")
   lazy val prompt: Option[String] = getAsString(underlying, "prompt")
   lazy val render: Option[Render] = getAsString(underlying, "render").map(Render(_))
 }
 
 object Link {
-  def apply(href: URI, rel: String, prompt: Option[String] = None, render: Option[Render] = None): Link = {
+  def apply(href: URI, rel: String, prompt: Option[String] = None, name: Option[String] = None, render: Option[Render] = None): Link = {
     apply(
       filtered(("href" -> href.toString) ~
         ("rel" -> rel) ~
+        ("name", name) ~
         ("prompt", prompt) ~
         ("render", render.map(_.name)))
     )
@@ -356,6 +363,7 @@ case class Query(underlying: JObject) extends Extensible[Query] with PropertyCon
 
   lazy val data: List[Property] = getAsObjectList(underlying, "data").map(Property(_))
 
+  lazy val name: Option[String] = getAsString(underlying, "name")
 
   def copy(obj: JObject) = Query(underlying)
 
@@ -364,7 +372,7 @@ case class Query(underlying: JObject) extends Extensible[Query] with PropertyCon
   def toURI: URI = {
     val query = data.map(p => p match {
       case vp@ValueProperty(o) => {
-        "%s=%s".format(vp.name, vp.value.map(_.value.toString).getOrElse(""))
+        "%s=%s".format(vp.name, vp.asValue.map(_.value.toString).getOrElse(""))
       }
       case _ => throw new IllegalArgumentException("Not a supported property type")
     }).mkString("", "&", "")
@@ -373,11 +381,12 @@ case class Query(underlying: JObject) extends Extensible[Query] with PropertyCon
 }
 
 object Query {
-  def apply(href: URI, rel: String, prompt: Option[String], data: List[Property]) : Query = {
+  def apply(href: URI, rel: String, data: List[Property] = Nil, prompt: Option[String] = None, name: Option[String] = None) : Query = {
    apply(
      filtered(("href" -> href.toString) ~
       ("rel" -> rel) ~
       ("prompt" -> prompt) ~
+      ("name", name) ~
       ("data" -> data.map(_.underlying)))
     )
   }
@@ -404,22 +413,22 @@ private[collection] sealed trait PropertyContainer[T <: PropertyContainer[T]] {
   def getProperty(name: String) = data.find(_.name == name)
 
   def getPropertyValue(name: String): Option[Value[_]] = getProperty(name).flatMap {
-    case vp@ValueProperty(_) => vp.value
-    case lp@ListProperty(_) => lp.value.headOption
+    case vp@ValueProperty(_) => vp.asValue
+    case lp@ListProperty(_) => lp.asArray.headOption
     case _ => None
   }
 
   def getPropertyAsSeq(name: String): Seq[Value[_]] = {
     getProperty(name).flatMap {
-      case vp@ValueProperty(_) => Some(vp.value.toSeq)
-      case lp@ListProperty(_) => Some(lp.value)
+      case vp:ValueProperty => Some(vp.asValue.toSeq)
+      case lp:ListProperty => Some(lp.asArray)
       case _ => None
     }.getOrElse(Seq.empty)
   }
 
   def getPropertyAsMap(name: String): Map[String, Value[_]] = {
     getProperty(name).flatMap {
-      case op@ObjectProperty(_) => Some(op.value)
+      case op:ObjectProperty => Some(op.asObject)
       case _ => None
     }.getOrElse(Map.empty)
   }

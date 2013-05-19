@@ -35,7 +35,7 @@ class JsonParserSpec extends Specification {
         ),
         List(
           Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),
-          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), Some(Render.IMAGE))
+          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), None, Some(Render.IMAGE))
         )
         )
       val links = List(
@@ -66,7 +66,7 @@ class JsonParserSpec extends Specification {
     "queries" in {
       val result = parser.parseCollection(new InputStreamReader(classOf[JsonParserSpec].getResourceAsStream("/queries.json")))
       val queries = List(
-        Query(URI.create("http://example.org/friends/search"), "search", Some("Search"), List(ValueProperty("search", None, Some(StringValue("")))))
+        Query(URI.create("http://example.org/friends/search"), "search", List(ValueProperty("search", None, Some(StringValue("")))), Some("Search"))
       )
       result match {
         case Left(ex) => throw ex
@@ -107,7 +107,7 @@ class JsonParserSpec extends Specification {
         ),
         List(
           Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),
-          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), Some(Render.IMAGE))
+          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), None, Some(Render.IMAGE))
         )
       )
       val links = List(
@@ -139,7 +139,7 @@ class JsonParserSpec extends Specification {
         ),
         List(
           Link(URI.create("http://examples.org/blogs/jdoe"), "blog", Some("Blog")),
-          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), Some(Render.IMAGE))
+          Link(URI.create("http://examples.org/images/jdoe"), "avatar", Some("Avatar"), None, Some(Render.IMAGE))
         )
       )
       val links = List(
