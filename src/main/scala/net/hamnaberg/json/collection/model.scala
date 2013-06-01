@@ -196,10 +196,9 @@ object Property {
   def apply(obj: JObject): Property = {
     val map = obj.values
     obj match {
-      case o if (map.contains("value")) => ValueProperty(o)
       case o if (map.contains("array")) => ListProperty(o)
       case o if (map.contains("object")) => ObjectProperty(o)
-      case _ => throw new IllegalArgumentException("Uknown property type")
+      case _ => ValueProperty(obj)
     }
   }
 }
