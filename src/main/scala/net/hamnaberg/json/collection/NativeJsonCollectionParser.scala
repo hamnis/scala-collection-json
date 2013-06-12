@@ -11,7 +11,7 @@ object NativeJsonCollectionParser extends JsonCollectionParser {
 
   def parseCollection(reader: Reader): Either[Throwable, JsonCollection] = {
     try {
-      val parsed = JsonParser.parse(reader, true)
+      val parsed = JsonParser.parse(reader, closeAutomatically = true, useBigDecimalForDouble = true)
       parsed match {
         case JObject(List(JField("collection", x@JObject(_)))) => {
           allCatch.either(
@@ -34,7 +34,7 @@ object NativeJsonCollectionParser extends JsonCollectionParser {
 
   def parseTemplate(reader: Reader): Either[Throwable, Template] = {
     try {
-      val parsed = JsonParser.parse(reader, true)
+      val parsed = JsonParser.parse(reader, closeAutomatically = true, useBigDecimalForDouble = true)
       parsed match {
         case JObject(List(JField("template", x: JObject))) => allCatch.either(Template(filtered(x)))
         case _ => throw new IllegalArgumentException("Unexpected json here. was\n %s".format(parsed))

@@ -10,7 +10,7 @@ class CollectionSpec extends Specification {
       coll.queries must beEmpty
       coll.links must beEmpty
       coll.items must beEmpty
-      coll.href must beEqualTo(Some(URI.create("hello")))
+      coll.href must beEqualTo(URI.create("hello"))
     }
     "add query after creation" in {
       val coll = JsonCollection(URI.create("hello")).addQuery(Query(URI.create("pp"), "hello"))
