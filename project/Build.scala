@@ -7,8 +7,8 @@ object Build extends sbt.Build {
 
   lazy val buildSettings = Defaults.defaultSettings ++ Aether.aetherPublishSettings ++ Seq(
     organization := "net.hamnaberg.rest",
-    scalaVersion := "2.10.0",
-    crossScalaVersions := Seq("2.9.1", "2.9.2", "2.10.0"),
+    scalaVersion := "2.10.1",
+    crossScalaVersions := Seq("2.9.1", "2.9.2", "2.9.3", "2.10.1"),
     scalacOptions := Seq("-deprecation"),
     publishTo <<= (version) apply {
       (v: String) => if (v.trim().endsWith("SNAPSHOT")) Some(Resolvers.sonatypeNexusSnapshots) else Some(Resolvers.sonatypeNexusStaging)
@@ -23,10 +23,16 @@ object Build extends sbt.Build {
     settings = buildSettings ++ Seq(
       description := "Collection+JSON",
       name := "scala-json-collection", 
-      libraryDependencies += "org.json4s" %% "json4s-native" % "3.1.0",
-      libraryDependencies <+= scalaVersion { sv =>
-          val ver = if (sv.startsWith("2.10")) "1.13" else "1.12.3"
-          "org.specs2" %% "specs2" % ver % "test"
+      libraryDependencies += "org.json4s" %% "json4s-native" % "3.2.4",
+      libraryDependencies <+= scalaBinaryVersion { sv =>
+
+        val ver = sv.split("\\.").toList match {
+          case "2" :: "10" :: Nil         => "1.13"
+          case "2" :: "9" :: "3" :: Nil   => "1.12.4.1"
+          case "2" :: "9" :: _            => "1.12.3"
+          case _                          => sys.error("Unsupported scala version " + sv)
+        }
+        "org.specs2" %% "specs2" % ver % "test"
       },
 	    manifestSetting
 	    ) ++ mavenCentralFrouFrou
