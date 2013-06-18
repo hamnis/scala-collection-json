@@ -16,20 +16,27 @@ case class JsonCollection private[collection](underlying: JObject) extends Exten
   val template: Option[Template] = getAsObject(underlying, "template").map(Template(_))
   val error: Option[Error] = getAsObject(underlying, "error").map(Error(_))
 
-  //TODO: Expensive, do rather a patch of the JArray itself.
-  def addItem(item: Item) = copy(replace(underlying, "items", JArray((items ++ List(item)).map(_.underlying))))
+  def addItem(item: Item) = addItems(List(item))
 
-  //TODO: Expensive, do rather a patch of the JArray itself.
-  def addLink(link: Link) = copy(replace(underlying, "links", JArray((links ++ List(link)).map(_.underlying))))
+  def addItems(itemToAdd: List[Item]) = withItems(items ++ itemToAdd)
 
-  //TODO: Expensive, do rather a patch of the JArray itself.
-  def addQuery(query: Query) = copy(replace(underlying, "queries", JArray((queries ++ List(query)).map(_.underlying))))
+  def addLink(link: Link) = addLinks(List(link))
+
+  def addLinks(linksToAdd: List[Link]) = withLinks(links ++ linksToAdd)
+
+  def addQuery(query: Query) = addQueries(List(query))
+
+  def addQueries(queriesToAdd: List[Query]) = withQueries(queries ++ queriesToAdd)
 
   def withTemplate(template: Template) = copy(replace(underlying, "template", template.underlying))
 
-  def copy(obj: JObject) = JsonCollection(obj)
-
   def withError(error: Error) = copy(replace(underlying, "error", error.underlying))
+
+  def withItems(links: List[Item]) = copy(replace(underlying, "items", JArray(links.map(_.underlying))))
+
+  def withLinks(links: List[Link]) = copy(replace(underlying, "links", JArray(links.map(_.underlying))))
+
+  def withQueries(queries: List[Query]) = copy(replace(underlying, "queries", JArray(links.map(_.underlying))))
 
   def isError = error.isDefined
 
@@ -51,6 +58,8 @@ case class JsonCollection private[collection](underlying: JObject) extends Exten
   def findQueryByRel(rel: String) = queries.find(_.rel == rel)
 
   def images = links.filter(_.render == Some(Render.IMAGE))
+
+  def copy(obj: JObject) = JsonCollection(obj)
 
   def toJson = JObject(List(JField("collection", underlying)))
 }
@@ -227,7 +236,13 @@ case class Item(underlying: JObject) extends Extensible[Item] with PropertyConta
 
   def findLinkByRel(rel: String) = links.find(_.rel == rel)
 
-  def images = links.filter(_.render == Some(Render.IMAGE))
+  def images: List[Link] = links.filter(_.render == Some(Render.IMAGE))
+
+  def addLink(link: Link) = addLinks(List(link))
+
+  def addLinks(linksToAdd: List[Link]) = withLinks(links ++ linksToAdd)
+
+  def withLinks(links: List[Link]) = copy(replace(underlying, "links", JArray(links.map(_.underlying))))
 
   protected def copyData(data: List[Property]) = copy(replace(underlying, "data", JArray(data.map(_.underlying))))
 
@@ -336,10 +351,12 @@ private[collection] sealed trait PropertyContainer[T <: PropertyContainer[T]] {
     }.getOrElse(Map.empty)
   }
 
-  def addProperty(property: Property) = {
+  def addProperty(property: Property) = copyData(data ::: List(property))
+
+  def replace(property: Property) = {
     val index = data.indexWhere(_.name == property.name)
     if (index == -1) {
-      copyData(data ::: List(property))
+      throw new NoSuchElementException("No property with name %s found to replace".format(property.name))
     }
     else {
       copyData(data.updated(index, property))
