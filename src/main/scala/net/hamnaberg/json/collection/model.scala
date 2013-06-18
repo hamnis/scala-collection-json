@@ -353,7 +353,7 @@ private[collection] sealed trait PropertyContainer[T <: PropertyContainer[T]] {
 
   def addProperty(property: Property) = copyData(data ::: List(property))
 
-  def replace(property: Property) = {
+  def replaceProperty(property: Property) = {
     val index = data.indexWhere(_.name == property.name)
     if (index == -1) {
       throw new NoSuchElementException("No property with name %s found to replace".format(property.name))
