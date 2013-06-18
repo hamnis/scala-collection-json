@@ -11,5 +11,8 @@ trait Extensible[T <: Extensible[T]] { self:T =>
 
   def extract[B](ext: Extension[T, B]): B = ext.apply(self)
 
-  def apply[B](ext: Extension[T, B], value: B): T = copy(JObject(underlying.obj ++ ext.asJson(value, self)))
+  def apply[B](ext: Extension[T, B], value: B): T = {
+    val fromExt = ext.asJson(value, self)
+    if (fromExt.isEmpty) self else copy(JObject(underlying.obj ++ fromExt))
+  }
 }

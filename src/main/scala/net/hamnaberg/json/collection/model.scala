@@ -203,7 +203,7 @@ object Render {
 
 case class Link private[collection](underlying: JObject) extends Extensible[Link] {
 
-  def copy(obj: JObject) = Link(underlying)
+  def copy(obj: JObject) = Link(obj)
 
   lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new MissingFieldException("href", "link"))
   lazy val rel: String = getAsString(underlying, "rel").getOrElse(throw new MissingFieldException("rel", "link"))
@@ -232,7 +232,7 @@ case class Item(underlying: JObject) extends Extensible[Item] with PropertyConta
 
   lazy val links: List[Link] = getAsObjectList(underlying, "links").map(Link(_))
 
-  def copy(obj: JObject) = Item(underlying)
+  def copy(obj: JObject) = Item(obj)
 
   def findLinkByRel(rel: String) = links.find(_.rel == rel)
 
@@ -279,7 +279,7 @@ case class Query(underlying: JObject) extends Extensible[Query] with PropertyCon
 
   lazy val name: Option[String] = getAsString(underlying, "name")
 
-  def copy(obj: JObject) = Query(underlying)
+  def copy(obj: JObject) = Query(obj)
 
   protected def copyData(data: List[Property]) = copy(replace(underlying, "data", JArray(data.map(_.underlying))))
 
@@ -308,7 +308,7 @@ object Query {
 
 case class Template(underlying: JObject) extends Extensible[Template] with PropertyContainer[Template] with Writeable {
 
-  def copy(obj: JObject) = Template(underlying)
+  def copy(obj: JObject) = Template(obj)
 
   lazy val data: List[Property] = getAsObjectList(underlying, "data").map(Property(_))
 
