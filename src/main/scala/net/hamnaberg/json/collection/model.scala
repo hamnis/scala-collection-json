@@ -36,7 +36,7 @@ case class JsonCollection private[collection](underlying: JObject) extends Exten
 
   def withLinks(links: List[Link]) = copy(replace(underlying, "links", JArray(links.map(_.underlying))))
 
-  def withQueries(queries: List[Query]) = copy(replace(underlying, "queries", JArray(links.map(_.underlying))))
+  def withQueries(queries: List[Query]) = copy(replace(underlying, "queries", JArray(queries.map(_.underlying))))
 
   def isError = error.isDefined
 
@@ -150,6 +150,13 @@ object JsonCollection {
             items: List[Item]): JsonCollection =
     JsonCollection(Version.ONE, href, links, items, Nil, None, None)
 
+
+  def parse(reader: java.io.Reader)(implicit parser: JsonCollectionParser): Either[Throwable, JsonCollection] = parser.parseCollection(reader)
+
+  def parse(inputStream: java.io.InputStream)(implicit parser: JsonCollectionParser):Either[Throwable, JsonCollection] = parser.parseCollection(inputStream)
+
+  def parse(string: String)(implicit parser: JsonCollectionParser):Either[Throwable, JsonCollection] = parser.parseCollection(string)
+
 }
 
 sealed trait Version {
@@ -224,7 +231,7 @@ object Link {
   }
 }
 
-case class Item(underlying: JObject) extends Extensible[Item] with PropertyContainer[Item] {
+case class Item private[collection](underlying: JObject) extends Extensible[Item] with PropertyContainer[Item] {
 
   lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new MissingFieldException("href", "item"))
 
@@ -267,7 +274,7 @@ object Item {
   }
 }
 
-case class Query(underlying: JObject) extends Extensible[Query] with PropertyContainer[Query] {
+case class Query private[collection](underlying: JObject) extends Extensible[Query] with PropertyContainer[Query] {
 
   type T = Query
 
@@ -306,7 +313,7 @@ object Query {
   }
 }
 
-case class Template(underlying: JObject) extends Extensible[Template] with PropertyContainer[Template] with Writeable {
+case class Template private[collection](underlying: JObject) extends Extensible[Template] with PropertyContainer[Template] with Writeable {
 
   def copy(obj: JObject) = Template(obj)
 
@@ -320,9 +327,17 @@ case class Template(underlying: JObject) extends Extensible[Template] with Prope
 }
 
 object Template {
-  def apply(data: List[Property] = Nil): Template = apply(
+  def apply(data: List[Property]): Template = apply(
     filtered("data" -> data.map(_.underlying))
   )
+
+  def apply(data: Property*): Template = apply(data.toList)
+
+  def parse(input: java.io.Reader)(implicit parser: JsonCollectionParser): Either[Throwable, Template] = parser.parseTemplate(input)
+
+  def parse(input: java.io.InputStream)(implicit parser: JsonCollectionParser): Either[Throwable, Template] = parser.parseTemplate(input)
+
+  def parse(input: String)(implicit parser: JsonCollectionParser): Either[Throwable, Template] = parser.parseTemplate(input)
 }
 
 private[collection] sealed trait PropertyContainer[T <: PropertyContainer[T]] {

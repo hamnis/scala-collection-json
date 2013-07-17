@@ -47,8 +47,10 @@ object ValueProperty {
     )
   }
   def apply[A](name: String, prompt: Option[String], value: Option[A])(implicit converter: ValueConverter[A, _]): ValueProperty = {
-    apply(name, prompt, value.map(converter.convert(_)))
+    apply(name, prompt, value.map(converter.convert))
   }
+
+  def apply[A](name: String, value: Option[A])(implicit converter: ValueConverter[A, _]): ValueProperty = apply(name, None, value)
 }
 
 case class ListProperty private[collection](underlying: JObject) extends Property {
@@ -69,7 +71,9 @@ object ListProperty {
   }
 
   def apply[A](name: String, prompt: Option[String], value: Seq[A])(implicit converter: ValueConverter[A, _]): ListProperty =
-    apply(name, prompt, value.map(converter.convert(_)))
+    apply(name, prompt, value.map(converter.convert))
+
+  def apply[A](name: String, value: Seq[A])(implicit converter: ValueConverter[A, _]): ListProperty = apply(name, None, value)
 }
 
 case class ObjectProperty private[collection](underlying: JObject) extends Property {
