@@ -24,7 +24,7 @@ class ReflectionData[A](implicit tag: scala.reflect.ClassTag[A]) extends DataExt
         else {
           value match {
             case e: BigDecimal if classOf[Int] == clazz => e.toInt
-            case e: BigDecimal if classOf[Double] == clazz => e.toInt
+            case e: BigDecimal if classOf[Double] == clazz => e.toDouble
             case e => e
           }
         }
