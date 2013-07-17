@@ -3,7 +3,6 @@ package net.hamnaberg.json.collection
 import net.hamnaberg.json.collection.Json4sHelpers._
 import org.json4s._
 import org.json4s.JsonDSL._
-import scala.Some
 
 
 sealed trait Property extends Extensible[Property] {
@@ -26,6 +25,16 @@ object Property {
       case o if map.contains("array") => ListProperty(o)
       case o if map.contains("object") => ObjectProperty(o)
       case _ => ValueProperty(obj)
+    }
+  }
+
+  def apply(name: String, value: Any): Property = {
+    import net.hamnaberg.json.collection.{Value => V}
+    value match {
+      case l: Seq[_] => ListProperty(name, None, l.map(V.toValue))
+      case l: Map[_,_] => ObjectProperty(name, None, l.map{case (k: Any, v: Any) => k.toString -> V.toValue(v)}.toMap)
+      case v: Option[_] => ValueProperty(name, None, v.map(V.toValue))
+      case v => ValueProperty(name, None, Some(V.toValue(v)))
     }
   }
 

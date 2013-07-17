@@ -7,8 +7,8 @@ object Build extends sbt.Build {
 
   lazy val buildSettings = Defaults.defaultSettings ++ Aether.aetherPublishSettings ++ Seq(
     organization := "net.hamnaberg.rest",
-    scalaVersion := "2.10.1",
-    crossScalaVersions := Seq("2.9.1", "2.9.2", "2.9.3", "2.10.1"),
+    scalaVersion := "2.10.2",
+    crossScalaVersions := Seq("2.9.1", "2.9.2", "2.9.3", "2.10.2"),
     scalacOptions := Seq("-deprecation"),
     publishTo <<= (version) apply {
       (v: String) => if (v.trim().endsWith("SNAPSHOT")) Some(Resolvers.sonatypeNexusSnapshots) else Some(Resolvers.sonatypeNexusStaging)
