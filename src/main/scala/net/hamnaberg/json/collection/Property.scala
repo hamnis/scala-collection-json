@@ -28,6 +28,16 @@ object Property {
       case _ => ValueProperty(obj)
     }
   }
+
+  object Value {
+    def unapply(v: ValueProperty) = v.asValue
+  }
+  object Array {
+    def unapply(v: ListProperty) = Some(v.asArray)
+  }
+  object Object {
+    def unapply(v: ObjectProperty) = Some(v.asObject)
+  }
 }
 
 case class ValueProperty private[collection](underlying: JObject) extends Property {
@@ -94,5 +104,20 @@ object ObjectProperty {
         ("prompt" -> prompt) ~
         ("object" -> JObject(value.map{case (x,y) => JField(x, y.toJson)}.toList)))
     )
+  }
+
+  def apply(name: String, value: Map[String, Any]): ObjectProperty = {
+    import Value.{BooleanValue, StringValue, NullValue, NumberValue}
+    import util.control.Exception.allCatch
+
+    def toNumberValue(n: Any) = allCatch.opt(NumberValue(BigDecimal(n.toString))).getOrElse(throw new IllegalArgumentException(n + " is not a number"))
+
+    val mapper: (Any) => Value[_] =  (v) => v match {
+      case null => NullValue
+      case v: String => StringValue(v)
+      case v: Boolean => BooleanValue(v)
+      case v => toNumberValue(v)
+    }
+    ObjectProperty(name, None, value.mapValues(mapper))
   }
 }
