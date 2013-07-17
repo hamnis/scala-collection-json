@@ -36,6 +36,19 @@ object Value {
     case NullValue => JNull
     case _ => throw new IllegalArgumentException("Unknown value type")
   }
+
+  private[collection] def toValue(any: Any): Value[_] = {
+    import util.control.Exception.allCatch
+
+    def toNumberValue(n: Any) = allCatch.opt(NumberValue(BigDecimal(n.toString))).getOrElse(throw new IllegalArgumentException(n + " is not a number"))
+
+    any match {
+      case null => NullValue
+      case v: String => StringValue(v)
+      case v: Boolean => BooleanValue(v)
+      case v => toNumberValue(v)
+    }
+  }
 }
 
 trait ValueConverter[-A, B] {

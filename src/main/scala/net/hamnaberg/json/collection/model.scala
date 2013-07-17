@@ -9,7 +9,7 @@ import Json4sHelpers._
 case class JsonCollection private[collection](underlying: JObject) extends Extensible[JsonCollection] with Writeable {
 
   val version: Version = getAsString(underlying, "version").map(Version(_)).getOrElse(Version.ONE)
-  val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new MissingFieldException("href", "collection"))
+  val href: URI = getAsString(underlying, "href").map(URI.create).getOrElse(throw new MissingFieldException("href", "collection"))
   val links: List[Link] = getAsObjectList(underlying, "links").map(Link(_))
   val items: List[Item] = getAsObjectList(underlying, "items").map(Item(_))
   val queries: List[Query] = getAsObjectList(underlying, "queries").map(Query(_))
@@ -212,7 +212,7 @@ case class Link private[collection](underlying: JObject) extends Extensible[Link
 
   def copy(obj: JObject) = Link(obj)
 
-  lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new MissingFieldException("href", "link"))
+  lazy val href: URI = getAsString(underlying, "href").map(URI.create).getOrElse(throw new MissingFieldException("href", "link"))
   lazy val rel: String = getAsString(underlying, "rel").getOrElse(throw new MissingFieldException("rel", "link"))
   lazy val name: Option[String] = getAsString(underlying, "name")
   lazy val prompt: Option[String] = getAsString(underlying, "prompt")
@@ -233,7 +233,7 @@ object Link {
 
 case class Item private[collection](underlying: JObject) extends Extensible[Item] with PropertyContainer[Item] {
 
-  lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new MissingFieldException("href", "item"))
+  lazy val href: URI = getAsString(underlying, "href").map(URI.create).getOrElse(throw new MissingFieldException("href", "item"))
 
   lazy val data: List[Property] = getAsObjectList(underlying, "data").map(Property(_))
 
@@ -278,7 +278,7 @@ case class Query private[collection](underlying: JObject) extends Extensible[Que
 
   type T = Query
 
-  lazy val href: URI = getAsString(underlying, "href").map(URI.create(_)).getOrElse(throw new MissingFieldException("href", "query"))
+  lazy val href: URI = getAsString(underlying, "href").map(URI.create).getOrElse(throw new MissingFieldException("href", "query"))
 
   lazy val rel: String = getAsString(underlying, "rel").getOrElse(throw new MissingFieldException("rel", "query"))
 

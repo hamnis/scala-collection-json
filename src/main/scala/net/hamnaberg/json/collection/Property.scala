@@ -107,17 +107,6 @@ object ObjectProperty {
   }
 
   def apply(name: String, value: Map[String, Any]): ObjectProperty = {
-    import Value.{BooleanValue, StringValue, NullValue, NumberValue}
-    import util.control.Exception.allCatch
-
-    def toNumberValue(n: Any) = allCatch.opt(NumberValue(BigDecimal(n.toString))).getOrElse(throw new IllegalArgumentException(n + " is not a number"))
-
-    val mapper: (Any) => Value[_] =  (v) => v match {
-      case null => NullValue
-      case v: String => StringValue(v)
-      case v: Boolean => BooleanValue(v)
-      case v => toNumberValue(v)
-    }
-    ObjectProperty(name, None, value.mapValues(mapper))
+    ObjectProperty(name, None, value.mapValues(Value.toValue))
   }
 }
