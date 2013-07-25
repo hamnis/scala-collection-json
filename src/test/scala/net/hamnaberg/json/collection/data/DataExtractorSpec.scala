@@ -1,9 +1,11 @@
 package net.hamnaberg.json.collection.data
 
 import org.specs2.mutable.Specification
-import net.hamnaberg.json.collection.Property
+import net.hamnaberg.json.collection.{Item, Property}
 
 case class TestData(s: String, n: Int)
+
+case class Person(name: String, age: Int)
 
 class DataExtractorSpec extends Specification {
   "data extraction" should {
@@ -33,6 +35,21 @@ class DataExtractorSpec extends Specification {
       implicit val formats = org.json4s.DefaultFormats
       new JavaReflectionData[TestData].apply(map) should be equalTo properties
     }
+
+    "Person to Item" in {
+      implicit val formats = org.json4s.DefaultFormats
+      implicit val extractor = new JavaReflectionData[Person]
+      val item = Item(java.net.URI.create("hello"), Person("John", 20), Nil)
+      item.getProperty("name") must be equalTo Some(Property("name", "John"))
+      item.getProperty("age") must be equalTo Some(Property("age", 20))
+    }
+    "Person from Item" in {
+      implicit val formats = org.json4s.DefaultFormats
+      implicit val extractor = new JavaReflectionData[Person]
+      val item = Item(java.net.URI.create("hello"), List(Property("name", "John"), Property("age", 20)), Nil)
+      item.unapply[Person] must be equalTo Some(Person("John", 20))
+    }
+
   }
 }
 

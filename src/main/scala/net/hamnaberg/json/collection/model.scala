@@ -5,6 +5,7 @@ import java.net.URI
 import org.json4s._
 import org.json4s.JsonDSL._
 import Json4sHelpers._
+import net.hamnaberg.json.collection.data.{DataExtractor, DataApply}
 
 case class JsonCollection private[collection](underlying: JObject) extends Extensible[JsonCollection] with Writeable {
 
@@ -272,6 +273,10 @@ object Item {
         ("links" -> li))
     )
   }
+
+  def apply[A](href: URI, value: A, links: List[Link])(implicit data: DataApply[A]): Item = {
+    apply(href, data.apply(value), links)
+  }
 }
 
 case class Query private[collection](underlying: JObject) extends Extensible[Query] with PropertyContainer[Query] {
@@ -331,6 +336,8 @@ object Template {
     filtered("data" -> data.map(_.underlying))
   )
 
+  def apply[A](value: A)(implicit data: DataApply[A]): Template = apply(data.apply(value))
+
   def apply(data: Property*): Template = apply(data.toList)
 
   def parse(input: java.io.Reader)(implicit parser: JsonCollectionParser): Either[Throwable, Template] = parser.parseTemplate(input)
@@ -342,6 +349,8 @@ object Template {
 
 private[collection] sealed trait PropertyContainer[T <: PropertyContainer[T]] {
   def data: List[Property]
+
+  def unapply[A](implicit extractor: DataExtractor[A]) = extractor.unapply(data)
 
   def getProperty(name: String) = data.find(_.name == name)
 
