@@ -36,11 +36,10 @@ class ReflectionData[A](implicit tag: scala.reflect.ClassTag[A]) extends DataExt
 
   def apply(value: A) = {
     val im = m.reflect(value)
-    val fields = clazz.toType.declarations.filterNot(k => k.isMethod || k.isModule)
-    fields.map{ f =>
-      val name = f.name.decoded.trim
-      val res = im.reflectField(f.asTerm).get
-      Property(name, res)
+    clazz.toType.declarations.collect{
+      case m: MethodSymbol if m.isCaseAccessor =>
+        val res = im.reflectMethod(m)()
+        Property(m.name.decoded, res)
     }.toList
   }
 }
