@@ -24,12 +24,14 @@ class DataExtractorSpec extends Specification {
     "extract to TestData reflection" in {
       val properties = List(Property("s", "hey"), Property("n", 23))
       val map = TestData("hey", 23)
-      new ReflectionData[TestData].unapply(properties) should be equalTo Some(map)
+      implicit val formats = org.json4s.DefaultFormats
+      new JavaReflectionData[TestData].unapply(properties) should be equalTo Some(map)
     }
     "apply from TestData reflection" in {
       val properties = List(Property("s", "hey"), Property("n", 23))
       val map = TestData("hey", 23)
-      new ReflectionData[TestData].apply(map) should be equalTo properties
+      implicit val formats = org.json4s.DefaultFormats
+      new JavaReflectionData[TestData].apply(map) should be equalTo properties
     }
   }
 }
