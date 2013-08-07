@@ -1,11 +1,10 @@
 import sbt._
 import sbt.Keys._
 import xml.Group
-import aether._
 
 object Build extends sbt.Build {
 
-  lazy val buildSettings = Defaults.defaultSettings ++ Aether.aetherPublishSettings ++ Seq(
+  lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "net.hamnaberg.rest",
     scalaVersion := "2.10.2",
     crossScalaVersions := Seq("2.9.1", "2.9.2", "2.9.3", "2.10.2"),
