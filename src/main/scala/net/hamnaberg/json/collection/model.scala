@@ -42,6 +42,8 @@ case class JsonCollection private[collection](underlying: JObject) extends Exten
   def isError = error.isDefined
 
   def map[B](f: (Item) => B): List[B] = items.map(f)
+  
+  def flatMap[B](f: (Item) => List[B]): List[B] = items.flatMap(f)
 
   def filter(f: (Item) => Boolean): List[Item] = items.filter(f)
 
