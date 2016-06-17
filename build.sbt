@@ -1,8 +1,8 @@
 organization := "net.hamnaberg.rest"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.8"
 
-crossScalaVersions := Seq("2.10.4", "2.11.1")
+crossScalaVersions := Seq("2.10.6", "2.11.8")
 
 scalacOptions := Seq("-deprecation")
 

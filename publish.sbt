@@ -43,6 +43,8 @@ pomExtra <<= (pomExtra, name, description) {(pom, name, desc) => pom ++ xml.Grou
     </developers>
 )}
 
-useGpg := true
+enablePlugins(SignedAetherPlugin)
 
-aetherPublishSignedSettings
+disablePlugins(AetherPlugin)
+
+overridePublishSignedBothSettings
